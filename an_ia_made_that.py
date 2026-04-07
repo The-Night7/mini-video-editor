@@ -109,11 +109,6 @@ def generate_audio():
     idx_pop, idx_pop_end = int(pop_time * SR), int((pop_time + 0.05) * SR)
     if idx_pop_end < len(t):
         audio[idx_pop:idx_pop_end] += 0.8 * np.random.randn(idx_pop_end - idx_pop) * np.exp(-np.linspace(0, 10, idx_pop_end - idx_pop))
-        
-    glitch_time = T_SNAP + 4.0
-    idx_glitch = int(glitch_time * SR)
-    if idx_glitch < len(t):
-        audio[idx_glitch:] += 0.6 * np.random.randn(len(t) - idx_glitch) * (np.sin(2 * np.pi * 50 * t[idx_glitch:]) > 0)
 
     audio[mask_end] += 0.02 * np.random.randn(len(t))[mask_end]
     
@@ -221,42 +216,53 @@ def make_frame(t):
                 msg2 = "".join(random.choice(['%', '&', '$', '█']) if random.random() > 0.8 else c for c in msg2)
             draw.text((10, 30), msg2, font=sys_font, fill=(255, 50, 50))
             
-        if time_del >= 4.0:
-            for _ in range(300):
-                gx, gy = random.randint(0, RW), random.randint(0, RH)
-                gs = random.randint(2, 10)
-                c = random.choice([(255,0,0), (0,255,0), (0,0,255), (255,255,255), (0,0,0)])
-                draw.rectangle((gx, gy, gx+gs, gy+gs), fill=c)
-            img = apply_glitch(img, intensity=3.0, rgb_split=True, invert=random.choice([True, False]))
-            
         return np.array(img.resize((W, H), Image.NEAREST))
 
     # ================= PHASES 1 à 5 =================
-    img = Image.new('RGB', (RW, RH), (10, 10, 15))
+    if t < 10.5:
+        # Fond Bleu (Abel) se faisant progressivement dévorer
+        img = Image.new('RGB', (RW, RH), (0, 0, 150))
+    else:
+        # Caine a totalement pris le contrôle
+        img = Image.new('RGB', (RW, RH), (10, 10, 15))
+        
     draw = ImageDraw.Draw(img)
     
     glitch_intensity = 0.0 
     rgb_split_active = False
     invert_colors = False
 
-    if t < T_BOOT:
-        progress = t / T_BOOT
-        draw.text((20, 20), "[C&A_SYS] INITIALISATION...", font=sys_font, fill=(100, 255, 100))
-        bar_len = 40
-        filled = int(progress * bar_len)
-        draw.text((20, 80), "[" + "=" * filled + " " * (bar_len - filled) + "]", font=sys_font, fill=(255, 255, 255))
-        if progress > 0.8: glitch_intensity = 0.3
-
-    elif t < T_GENESIS:
-        for i in range(int((t-T_BOOT) * 20)):
+    if t < 10.5:
+        # Taches rouges (Caine) qui se multiplient et grossissent
+        for i in range(int(t * 40)): 
             random.seed(i)
             rx, ry = random.randint(0, RW), random.randint(0, RH)
-            draw.ellipse((rx, ry, rx+10, ry+10), fill=(150, 0, 0))
+            birth_time = i / 40.0
+            age = max(0, t - birth_time)
+            radius = int(age * 80) # Croissance rapide des taches
+            draw.ellipse((rx-radius, ry-radius, rx+radius, ry+radius), fill=(180, 0, 0))
         random.seed()
-        if t > 8.0:
-            cx, cy = RW//2, RH//2
-            draw.ellipse((cx-50, cy-50, cx+50, cy+50), fill=(0, 0, 255))
-            if t > 9.5: glitch_intensity = 1.0
+        if t > 9.5: glitch_intensity = 1.0 # Glitch final de l'assimilation
+
+    if t < T_BOOT:
+        progress = t / T_BOOT
+        # Contour noir autour du texte pour rester lisible sur l'invasion rouge
+        draw.text((21, 21), "[C&A_SYS] INITIALISATION...", font=sys_font, fill=(0, 0, 0))
+        draw.text((20, 20), "[C&A_SYS] INITIALISATION...", font=sys_font, fill=(100, 255, 100))
+        
+        bar_len = 40
+        filled = int(progress * bar_len)
+        bar_str = "[" + "=" * filled + " " * (bar_len - filled) + "]"
+        draw.text((21, 81), bar_str, font=sys_font, fill=(0, 0, 0))
+        draw.text((20, 80), bar_str, font=sys_font, fill=(255, 255, 255))
+        
+        if progress > 0.8: glitch_intensity = max(glitch_intensity, 0.3)
+
+    elif t < T_GENESIS:
+        if t > 10.5:
+            # Après l'assimilation complète d'Abel
+            draw.text((20, 20), "> SYSTEM OVERRIDE : CAINE ACTIVE.", font=sys_font, fill=(255, 50, 50))
+            draw.text((20, 40), "> BIENVENUE DANS LE CIRQUE.", font=sys_font, fill=(255, 255, 255))
 
     elif t < T_REJECT:
         draw.rectangle((0, 0, RW, RH), fill=(20, 0, 20))
