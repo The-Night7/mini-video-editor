@@ -91,6 +91,19 @@ def generate_audio():
     idx_del, idx_del_end = int(T_SNAP * SR), int((T_SNAP + 0.2) * SR)
     if idx_del_end < len(t):
         audio[idx_del:idx_del_end] = 0.5 * np.sin(2 * np.pi * 1500 * t[idx_del:idx_del_end]) * np.exp(-np.linspace(0, 5, idx_del_end - idx_del))
+        
+    # Son de "pop" (Caine disparait)
+    pop_time = T_SNAP + 1.5
+    idx_pop, idx_pop_end = int(pop_time * SR), int((pop_time + 0.05) * SR)
+    if idx_pop_end < len(t):
+        audio[idx_pop:idx_pop_end] += 0.8 * np.random.randn(idx_pop_end - idx_pop) * np.exp(-np.linspace(0, 10, idx_pop_end - idx_pop))
+        
+    # Glitch sonore final
+    glitch_time = T_SNAP + 4.0
+    idx_glitch = int(glitch_time * SR)
+    if idx_glitch < len(t):
+        audio[idx_glitch:] += 0.6 * np.random.randn(len(t) - idx_glitch) * (np.sin(2 * np.pi * 50 * t[idx_glitch:]) > 0)
+
     audio[mask_end] += 0.02 * np.random.randn(len(t))[mask_end]
     
     return AudioArrayClip(np.column_stack((audio, audio)), fps=SR)
@@ -194,16 +207,35 @@ def make_frame(t):
         draw = ImageDraw.Draw(img)
         time_del = t - T_SNAP
         
-        for i in range(25):
-            random.seed(i * 100)
-            hx, hy = random.randint(-50, RW+50), random.randint(-50, RH+50)
-            hr = int((time_del * 100) + random.randint(10, 50))
-            draw.regular_polygon((hx, hy, hr), 6, fill=(40, 0, 80))
+        # Point rouge (Caine) au centre qui tremble et disparait
+        if time_del < 1.5:
+            pulse = int(2 * math.sin(time_del * 50))
+            radius = max(1, 10 - int(time_del * 4) + pulse)
+            cx, cy = RW // 2, RH // 2
+            draw.ellipse((cx-radius, cy-radius, cx+radius, cy+radius), fill=(255, 0, 0))
             
-        if time_del > 1.5: draw.text((RW//2 - 40, RH//2), "holy shit...", font=sys_font, fill=(200, 200, 200))
-        if time_del > 3.0: draw.text((RW//2 - 100, RH - 40), "[ C&A_CONSOLE : CAINE.EXE DELETED ]", font=sys_font, fill=(255, 0, 0))
+        # Messages terminaux en haut à gauche
+        if time_del >= 1.5:
+            msg1 = "caine was successfully deleted"
+            if random.random() > 0.85:
+                msg1 = "".join(random.choice(['#', '!', '?', '█', 'c', 'a', 'i']) if random.random() > 0.8 else c for c in msg1)
+            draw.text((10, 10), msg1, font=sys_font, fill=(150, 255, 150))
             
-        random.seed()
+        if time_del >= 3.0:
+            msg2 = "circus' core corrupted"
+            if random.random() > 0.85:
+                msg2 = "".join(random.choice(['%', '&', '$', '█']) if random.random() > 0.8 else c for c in msg2)
+            draw.text((10, 30), msg2, font=sys_font, fill=(255, 50, 50))
+            
+        # Glitch visuel final sur tout l'écran
+        if time_del >= 4.0:
+            for _ in range(300):
+                gx, gy = random.randint(0, RW), random.randint(0, RH)
+                gs = random.randint(2, 10)
+                c = random.choice([(255,0,0), (0,255,0), (0,0,255), (255,255,255), (0,0,0)])
+                draw.rectangle((gx, gy, gx+gs, gy+gs), fill=c)
+            img = apply_glitch(img, intensity=3.0, rgb_split=True, invert=random.choice([True, False]))
+            
         return np.array(img.resize((W, H), Image.NEAREST))
 
     # ================= PHASES 1 à 5 =================
