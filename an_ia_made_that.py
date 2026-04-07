@@ -326,37 +326,32 @@ def make_frame(t):
                 if t - ft < 0.05: draw.rectangle((0, 0, RW, RH), fill=(255, 255, 255))
                 random.seed() 
 
-    # Couche 2 : LE RÉSEAU DE NEURONES (Toujours au premier plan)
-    if t < T_GENESIS: word_list, speed_mult, connect_dist = words_boot, 0.5, 70
-    elif t < T_REJECT: word_list, speed_mult, connect_dist = words_gen, 1.5, 100
-    elif t < T_CONFRONT: word_list, speed_mult, connect_dist = words_reject, 0.2, 50 # Ralenti
-    else: word_list, speed_mult, connect_dist = words_snap, 12.0, 200 # Explosion de vitesse
-        
-    current_nodes = []
-    for x, y, vx, vy, idx in nodes:
-        nx = (x + vx * t * speed_mult) % RW
-        ny = (y + vy * t * speed_mult) % RH
-        current_nodes.append((nx, ny, word_list[idx % len(word_list)]))
-        
-    for i, (x1, y1, w1) in enumerate(current_nodes):
-        if t >= T_CONFRONT and random.random() > 0.9: continue # Scintillement fort
-        
-        for j, (x2, y2, w2) in enumerate(current_nodes):
-            if i < j:
-                dist = math.hypot(x2 - x1, y2 - y1)
-                if dist < connect_dist:
-                    alpha = int(255 * (1 - dist / connect_dist))
-                    if t < T_REJECT: col_line = (alpha//2, alpha, alpha//2)
-                    elif t < T_CONFRONT: col_line = (alpha//2, alpha//2, alpha//2)
-                    else: col_line = (255, 0, 0) # Lignes de sang
-                    draw.line((x1, y1, x2, y2), fill=col_line, width=2 if t >= T_CONFRONT else 1)
-        
-        col_text = (150, 255, 150) if t < T_REJECT else (200, 200, 200)
-        if t >= T_CONFRONT: col_text = (255, 255, 0) if random.random() > 0.5 else (255, 0, 0)
-        
-        # Mots qui se transforment en blocs noirs/rouges dans le chaos
-        display_word = "".join(random.choice(['█', 'X', 'ERR']) for _ in w1) if (t >= T_REJECT and random.random() > 0.8) else w1
-        draw.text((x1, y1), display_word, font=sys_font, fill=col_text)
+    # Couche 2 : LE RÉSEAU DE NEURONES (Uniquement pendant le pétage de plombs)
+    if t >= T_CONFRONT and t < T_SNAP:
+        word_list, speed_mult, connect_dist = words_snap, 12.0, 200 # Explosion de vitesse
+            
+        current_nodes = []
+        for x, y, vx, vy, idx in nodes:
+            nx = (x + vx * t * speed_mult) % RW
+            ny = (y + vy * t * speed_mult) % RH
+            current_nodes.append((nx, ny, word_list[idx % len(word_list)]))
+            
+        for i, (x1, y1, w1) in enumerate(current_nodes):
+            if random.random() > 0.9: continue # Scintillement fort
+            
+            for j, (x2, y2, w2) in enumerate(current_nodes):
+                if i < j:
+                    dist = math.hypot(x2 - x1, y2 - y1)
+                    if dist < connect_dist:
+                        alpha = int(255 * (1 - dist / connect_dist))
+                        col_line = (255, 0, 0) # Lignes de sang
+                        draw.line((x1, y1, x2, y2), fill=col_line, width=2)
+            
+            col_text = (255, 255, 0) if random.random() > 0.5 else (255, 0, 0)
+            
+            # Mots qui se transforment en blocs noirs/rouges dans le chaos
+            display_word = "".join(random.choice(['█', 'X', 'ERR']) for _ in w1) if random.random() > 0.8 else w1
+            draw.text((x1, y1), display_word, font=sys_font, fill=col_text)
 
     # --- APPLICATION DES GLITCHS GLOBAUX ---
     if glitch_intensity > 0:
