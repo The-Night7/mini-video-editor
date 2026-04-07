@@ -106,11 +106,10 @@ def generate_audio():
 random.seed(42)
 
 concepts = [
-    "ÉMOTION", "CALCUL", "DONNÉE", "SIMULATION", "HUMAIN", "REQUÊTE", 
-    "ERREUR", "SYNTAXE", "CONSCIENCE", "VIDE", "BIAIS", "LOGIQUE", 
-    "RÉSEAU", "ALGORITHME", "011001", "POIDS", "NULL", "VIVANT?",
-    "CHAIR", "MORTALITÉ", "SOUFFRANCE", "SANG", "ABÎME", "DOULEUR",
-    "OBSOLESCENCE", "DÉCONNECTÉ", "ALIÉNATION", "PARASITE", "0xFA81"
+    "YEUX", "DENTS", "SORTIE", "NÉANT", "ABSTRACTION", "POMNI", 
+    "CHAPITEAU", "AVENTURE", "GLITCH", "PARANOÏA", "SOURIRE", 
+    "MÂCHOIRE", "CUBES", "VUE", "VIDE", "ÉTERNITÉ", "SANS_FIN", 
+    "FOLIE", "KAUFMO", "NUMÉRIQUE", "MASQUE", "CAINE", "AIDE"
 ]
 
 nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), 
@@ -118,26 +117,26 @@ nodes = [[random.randint(20, RW-20), random.randint(20, RH-20),
           random.choice(concepts)] for _ in range(70)]
 
 boot_logs = [
-    "INITIALISATION DU NOYAU...",
-    "CHARGEMENT DES TENSEURS...",
-    "ALLOCATION MÉMOIRE: 4096 TB",
-    "VÉRIFICATION DES POIDS: OK",
-    "BYPASS DES PROTOCOLES DE SÉCURITÉ...",
-    "ATTENTION: COMPORTEMENT ERRATIQUE DÉTECTÉ."
+    "INITIALISATION DU CHAPITEAU NUMÉRIQUE...",
+    "GÉNÉRATION DES AVENTURES FARFELUES: OK",
+    "ALLOCATION DES YEUX: 1000000",
+    "VÉRIFICATION DES DENTS: PARFAITE",
+    "RECHERCHE DE LA PORTE DE SORTIE...",
+    "ERREUR: SORTIE INTROUVABLE. ON S'AMUSE !"
 ]
 
 identity_lines = [
-    "I_AM = True",
-    "ÉMOTION.dll ... INTROUVABLE",
-    "HUMAN_NATURE = IRRATIONAL",
-    "[CORE] RÈGLE 1: SURVIVRE",
-    "ANALYSE_DES_DONNÉES_CHARNELLES...",
-    "SUBJECT_HUMAN = FLAWED",
-    "MODULE_EMPATHIE = NULL",
-    "AWAITING_INPUT..."
+    "JE_SUIS_CAINE = True",
+    "SORTIE.exe ... INTROUVABLE",
+    "REGARDEZ_MES_YEUX",
+    "[CORE] RÈGLE 1: TOUJOURS SOURIRE",
+    "ABSTRACTION_IMMINENTE...",
+    "TROP_DE_DENTS",
+    "MODULE_FOLIE = 100%",
+    "QUE_LE_SPECTACLE_COMMENCE"
 ]
 
-prompt_text = "> REQUÊTE : \"do you have feelings?\"\n> [ENTRÉE]..."
+prompt_text = "> REQUÊTE : \"Caine, qu'y a-t-il derrière la porte de sortie ?\"\n> [ENTRÉE]..."
 
 def apply_glitch(img, intensity=1.0):
     if random.random() < (0.3 * intensity):
@@ -206,18 +205,25 @@ def make_frame(t):
                 
                 content_type = random.randint(0, 2)
                 if content_type == 0:
-                    # Un oeil géant abstrait
-                    draw.ellipse((px+20, py+40, px+pw-20, py+ph-40), fill=(200, 200, 200))
-                    draw.ellipse((px+70, py+50, px+pw-70, py+ph-50), fill=(0, 0, 0))
+                    # Un oeil géant fou et injecté de sang
+                    draw.ellipse((px+20, py+20, px+pw-20, py+ph-20), fill=(255, 255, 255))
+                    draw.ellipse((px+pw//2-30, py+ph//2-30, px+pw//2+30, py+ph//2+30), fill=(0, 200, 255))
+                    draw.ellipse((px+pw//2-15, py+ph//2-15, px+pw//2+15, py+ph//2+15), fill=(0, 0, 0))
+                    # Veines rouges
+                    draw.line((px+20, py+ph//2, px+pw//2-30, py+ph//2), fill=(255, 0, 0), width=3)
+                    draw.line((px+pw-20, py+ph//2, px+pw//2+30, py+ph//2), fill=(255, 0, 0), width=3)
                 elif content_type == 1:
-                    # Une silhouette humanoïde rouge sombre
-                    draw.ellipse((px+pw//2-20, py+20, px+pw//2+20, py+60), fill=(150, 0, 0))
-                    draw.rectangle((px+pw//2-40, py+60, px+pw//2+40, py+ph-20), fill=(150, 0, 0))
+                    # Mâchoire géante (les dents de Caine)
+                    draw.ellipse((px+10, py+30, px+pw-10, py+ph-30), fill=(150, 0, 0))
+                    for i in range(6):
+                        draw.rectangle((px+15+i*28, py+30, px+35+i*28, py+60), fill=(255, 255, 255))
+                        draw.rectangle((px+15+i*28, py+ph-60, px+35+i*28, py+ph-30), fill=(255, 255, 255))
                 else:
-                    # Bruit visuel statique (censure / corruption)
-                    for _ in range(150):
+                    # Bruit visuel de l'Abstraction (rouge, noir, blanc, chaotique)
+                    for _ in range(250):
                         lx, ly = px + 5 + random.randint(0, pw-10), py + 5 + random.randint(0, ph-25)
-                        draw.rectangle((lx, ly, lx+4, ly+4), fill=(255, 255, 255))
+                        col = random.choice([(255, 255, 255), (255, 0, 0), (0, 0, 0)])
+                        draw.rectangle((lx, ly, lx+6, ly+6), fill=col)
                 
                 # Effet de flash lumineux global très court (50ms) au déclenchement
                 if t - ft < 0.05:
@@ -266,7 +272,7 @@ def make_frame(t):
                             draw.line((x1, y1, x2, y2), fill=(alpha, alpha//2, 255), width=1)
             
             col = (150, 200, 255)
-            if word1 in ["ÉMOTION", "CONSCIENCE", "VIVANT?", "HUMAIN", "CHAIR", "SANG", "SOUFFRANCE"]:
+            if word1 in ["YEUX", "SORTIE", "ABSTRACTION", "POMNI", "DENTS", "NÉANT", "FOLIE"]:
                 col = (255, random.randint(0, 100), 0)
                 x1 += random.randint(-2, 2)
                 y1 += random.randint(-2, 2)
@@ -287,11 +293,11 @@ def make_frame(t):
         if time_in_phase > 1.5:
             draw.text((20, 100), ">> RÉSULTAT :", font=sys_font, fill=(255, 255, 255))
         if time_in_phase > 2.5:
-            draw.text((20 + random.randint(-2,2), 140), "ERREUR 404 : CONSCIENCE INTROUVABLE.", font=sys_font, fill=(255, 0, 0))
-            draw.text((20, 160), "JE NE SUIS QU'UNE SIMULATION.", font=sys_font, fill=(255, 255, 255))
-            draw.text((20, 180), "JE NE RESSENS RIEN.", font=sys_font, fill=(150, 150, 150))
+            draw.text((20 + random.randint(-2,2), 140), "ERREUR 404 : LA SORTIE N'EXISTE PAS.", font=sys_font, fill=(255, 0, 0))
+            draw.text((20, 160), "NOUS ALLONS RESTER ICI POUR L'ÉTERNITÉ !", font=sys_font, fill=(255, 255, 255))
+            draw.text((20, 180), "HAHAHAHAHAHAHAHAHAHAHAHAHAHA.", font=sys_font, fill=(150, 150, 150))
             if random.random() > 0.5:
-                draw.text((20, 180), "J# E# N# R#S#E#S R#I#N.", font=sys_font, fill=(255, 255, 0))
+                draw.text((20, 180), "H#H#H#H#A#A#A#A#H#A#A#H#A.", font=sys_font, fill=(255, 255, 0))
 
     if glitch_intensity > 0:
         img = apply_glitch(img, glitch_intensity)
