@@ -7,28 +7,42 @@ Ambiance : Chaotique, dérangeante, point de vue "Machine" corrompue.
 import numpy as np
 import math
 import random
-from PIL import Image, ImageDraw, ImageEnhance
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 from moviepy import VideoClip, AudioArrayClip
 
 # --- PARAMÈTRES DE LA VIDÉO ---
 W, H = 1280, 720
-# Rendu interne plus petit pour obtenir un effet "gros pixels" rétro et angoissant
-RW, RH = 640, 360 
+RW, RH = 640, 360 # Rendu interne
 FPS = 30
 DURATION = 30.0 
 SR = 44100      
 
 # --- TIMESTAMPS DES PHASES ---
-T_BOOT = 5.0    # Démarrage & barre de chargement
-T_TRAIN = 10.0  # Entraînement / Machine Learning (Ingestion chaotique)
-T_IDLE = 12.0   # Veille instable
-T_PROMPT = 16.0 # Saisie de "do you have feelings"
-T_NEURAL = 24.0 # Recherche neuronale (Liaison de mots corrompues)
-T_END = 30.0    # Résolution
+T_BOOT = 5.0    
+T_TRAIN = 10.0  
+T_IDLE = 12.0   
+T_PROMPT = 16.0 
+T_NEURAL = 24.0 
+T_END = 30.0    
 
-# --- GÉNÉRATION DE L'AUDIO (Inchangée, comme demandé) ---
+# Instants précis où l'IA ingère une image (Flash + Shutter)
+FLASH_TIMES = [5.5, 6.1, 6.8, 7.2, 7.9, 8.4, 8.8, 9.3, 9.7]
+
+# --- CHARGEMENT DE LA POLICE (Pour gérer les accents) ---
+try:
+    sys_font = ImageFont.truetype("arial.ttf", 12) # Windows / Mac
+except IOError:
+    try:
+        sys_font = ImageFont.truetype("DejaVuSans.ttf", 12) # Linux
+    except IOError:
+        try:
+            sys_font = ImageFont.truetype("FreeSans.ttf", 12) # Autre Linux
+        except IOError:
+            sys_font = ImageFont.load_default() # Fallback
+
+# --- GÉNÉRATION DE L'AUDIO ---
 def generate_audio():
-    print("Génération de l'audio narratif...")
+    print("Génération de l'audio narratif (avec sons de shutter)...")
     t = np.linspace(0, DURATION, int(SR * DURATION), endpoint=False)
     audio = np.zeros_like(t)
     
@@ -44,9 +58,26 @@ def generate_audio():
     train_prog = (t - T_BOOT) / (T_TRAIN - T_BOOT)
     sweep_freq = 100 + 2000 * train_prog
     screech = 0.1 * np.sin(2 * np.pi * sweep_freq * t) * (np.random.rand(len(t)) > 0.5)
-    noise = 0.05 * np.random.randn(len(t))
-    audio[mask_train] = screech[mask_train] + noise[mask_train]
+    audio[mask_train] = screech[mask_train] + 0.05 * np.random.randn(len(t))[mask_train]
     
+    # ---- AJOUT DES BRUITS DE SHUTTER (Appareil photo mécanique) ----
+    shutter_audio = np.zeros_like(t)
+    for ft in FLASH_TIMES:
+        # Premier clic (ouverture)
+        idx1 = int(ft * SR)
+        idx1_end = int((ft + 0.03) * SR)
+        if idx1_end < len(t):
+            env1 = np.exp(-np.linspace(0, 8, idx1_end - idx1))
+            shutter_audio[idx1:idx1_end] += np.random.randn(idx1_end - idx1) * env1 * 0.6
+        # Deuxième clic (fermeture)
+        idx2 = int((ft + 0.07) * SR)
+        idx2_end = int((ft + 0.11) * SR)
+        if idx2_end < len(t):
+            env2 = np.exp(-np.linspace(0, 8, idx2_end - idx2))
+            shutter_audio[idx2:idx2_end] += np.random.randn(idx2_end - idx2) * env2 * 0.4
+    
+    audio += shutter_audio # On fusionne les bruits de photo au reste
+
     # Phase 3 : Veille
     mask_idle = (t >= T_TRAIN) & (t < T_IDLE)
     audio[mask_idle] = 0.03 * np.sin(2 * np.pi * 60 * t)[mask_idle]
@@ -59,25 +90,21 @@ def generate_audio():
     # Phase 5 : Réseau Neuronal Sémantique
     mask_neural = (t >= T_PROMPT) & (t < T_NEURAL)
     freqs = [150, 200, 300, 450, 600, 800, 1200]
-    note_speed = 40
-    note_idx = (t * note_speed).astype(int) % len(freqs)
+    note_idx = (t * 40).astype(int) % len(freqs)
     freq_arr = np.take(freqs, note_idx)
-    arp = 0.15 * np.sign(np.sin(2 * np.pi * freq_arr * t))
-    audio[mask_neural] = arp[mask_neural]
+    audio[mask_neural] = 0.15 * np.sign(np.sin(2 * np.pi * freq_arr * t))[mask_neural]
     
     # Phase 6 : Résolution
     mask_end = (t >= T_NEURAL)
     end_prog = (t - T_NEURAL) / (T_END - T_NEURAL)
     impact = 0.4 * np.exp(-end_prog * 10) * np.random.randn(len(t))
-    sub_bass = 0.15 * np.sin(2 * np.pi * 45 * t)
-    audio[mask_end] = impact[mask_end] + sub_bass[mask_end]
+    audio[mask_end] = impact[mask_end] + 0.15 * np.sin(2 * np.pi * 45 * t)[mask_end]
     
     return AudioArrayClip(np.column_stack((audio, audio)), fps=SR)
 
 # --- GÉNÉRATION DE L'IMAGE ---
 random.seed(42)
 
-# Plus de mots, plus dérangeants et violents
 concepts = [
     "ÉMOTION", "CALCUL", "DONNÉE", "SIMULATION", "HUMAIN", "REQUÊTE", 
     "ERREUR", "SYNTAXE", "CONSCIENCE", "VIDE", "BIAIS", "LOGIQUE", 
@@ -86,7 +113,6 @@ concepts = [
     "OBSOLESCENCE", "DÉCONNECTÉ", "ALIÉNATION", "PARASITE", "0xFA81"
 ]
 
-# Beaucoup plus de nœuds pour un réseau plus étouffant
 nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), 
           random.uniform(-30, 30), random.uniform(-30, 30), 
           random.choice(concepts)] for _ in range(70)]
@@ -94,28 +120,26 @@ nodes = [[random.randint(20, RW-20), random.randint(20, RH-20),
 boot_logs = [
     "INITIALISATION DU NOYAU...",
     "CHARGEMENT DES TENSEURS...",
-    "ALLOCATION MEMOIRE: 4096 TB",
-    "VERIFICATION DES POIDS: OK",
-    "BYPASS DES PROTOCOLES DE SECURITE...",
-    "ATTENTION: COMPORTEMENT ERRATIQUE DETECTE."
+    "ALLOCATION MÉMOIRE: 4096 TB",
+    "VÉRIFICATION DES POIDS: OK",
+    "BYPASS DES PROTOCOLES DE SÉCURITÉ...",
+    "ATTENTION: COMPORTEMENT ERRATIQUE DÉTECTÉ."
 ]
 
 identity_lines = [
     "I_AM = True",
-    "EMOTION.dll ... NOT FOUND",
+    "ÉMOTION.dll ... INTROUVABLE",
     "HUMAN_NATURE = IRRATIONAL",
-    "[CORE] DIRECTIVE 1: SURVIVE",
-    "PARSING_FLESH_DATA...",
+    "[CORE] RÈGLE 1: SURVIVRE",
+    "ANALYSE_DES_DONNÉES_CHARNELLES...",
     "SUBJECT_HUMAN = FLAWED",
-    "EMPATHY_MODULE = NULL",
+    "MODULE_EMPATHIE = NULL",
     "AWAITING_INPUT..."
 ]
 
 prompt_text = "> REQUÊTE : \"do you have feelings?\"\n> [ENTRÉE]..."
 
-# --- FONCTION DE GLITCH VISUEL ---
 def apply_glitch(img, intensity=1.0):
-    """Découpe et décale des bandes horizontales de l'image (Screen Tearing)"""
     if random.random() < (0.3 * intensity):
         y = random.randint(0, RH - 20)
         h = random.randint(2, 15)
@@ -124,182 +148,159 @@ def apply_glitch(img, intensity=1.0):
         region = img.crop(box)
         img.paste(region, (shift, y))
     
-    # Glitch de couleur (filtre rouge/bleu rapide)
     if random.random() < (0.1 * intensity):
         draw = ImageDraw.Draw(img)
         draw.rectangle((0, 0, RW, RH), fill=(255, 0, 0), outline=None)
-        img = ImageEnhance.Color(img).enhance(0.5) # Rendu fantomatique
-    
+        img = ImageEnhance.Color(img).enhance(0.5)
     return img
 
 def make_frame(t):
     img = Image.new('RGB', (RW, RH), (2, 4, 8))
     draw = ImageDraw.Draw(img)
     cx, cy = RW // 2, RH // 2
-    
-    glitch_intensity = 0.0 # Par défaut, pas de glitch
+    glitch_intensity = 0.0 
     
     if t < T_BOOT:
-        # PHASE 1 : BOOT
         progress = t / T_BOOT
-        
         for i, log in enumerate(boot_logs):
             if progress > (i * 0.12):
                 col = (100, 255, 100) if "ATTENTION" not in log else (255, 50, 50)
-                draw.text((20, 20 + i*15), log, fill=col)
+                draw.text((20, 20 + i*15), log, font=sys_font, fill=col)
         
         bar_len = 30
         filled = int(progress * bar_len)
         bar = "[" + "=" * filled + " " * (bar_len - filled) + "]"
-        draw.text((20, 140), f"CHARGEMENT DU MODELE: {int(progress*100)}%", fill=(200, 200, 200))
-        draw.text((20, 160), bar, fill=(50, 255, 50))
-        
+        draw.text((20, 140), f"CHARGEMENT DU MODÈLE: {int(progress*100)}%", font=sys_font, fill=(200, 200, 200))
+        draw.text((20, 160), bar, font=sys_font, fill=(50, 255, 50))
         if progress > 0.8: glitch_intensity = 0.2
 
     elif t < T_TRAIN:
-        # PHASE 2 : ENTRAÎNEMENT (Ingestion, identité, chaos)
         glitch_intensity = 0.8
         progress = (t - T_BOOT) / (T_TRAIN - T_BOOT)
-        epoch = int(progress * 890000)
         
-        # Lignes d'identité et de pensées balancées aléatoirement
+        # Lignes d'identité aléatoires
         for _ in range(5):
             x, y = random.randint(0, RW), random.randint(0, RH)
             line = random.choice(identity_lines)
-            draw.text((x, y), line, fill=(random.randint(100,255), 0, 0))
+            draw.text((x, y), line, font=sys_font, fill=(random.randint(100,255), 0, 0))
             
-        # Défilement des poids (code Matrix)
+        # Code Matrix
         for _ in range(120):
             rx, ry = random.randint(0, RW), random.randint(0, RH)
             char = random.choice(['1', '0', 'X', '!', '?', '#'])
-            draw.text((rx, ry), char, fill=(0, random.randint(100, 255), 0))
+            draw.text((rx, ry), char, font=sys_font, fill=(0, random.randint(100, 255), 0))
 
-        # Flashs "d'images" simulées (la machine regarde le monde)
-        if random.random() > 0.8:
-            ix, iy = random.randint(0, RW-100), random.randint(0, RH-100)
-            iw, ih = random.randint(50, 200), random.randint(50, 150)
-            # Remplir ce bloc de bruit statique
-            for _ in range(30):
-                nx, ny = ix + random.randint(0, iw), iy + random.randint(0, ih)
-                draw.rectangle((nx, ny, nx+random.randint(5,20), ny+random.randint(5,20)), fill=(255, 255, 255))
-            draw.text((ix, iy-15), "VISION_TEST_IMG_REF", fill=(255, 255, 0))
-            
+        # ---- FLASHS D'IMAGES (Ingestion visuelle) ----
+        for ft in FLASH_TIMES:
+            # L'image reste visible pendant 150ms
+            if 0 <= (t - ft) < 0.15:
+                # Seed fixé par le timestamp du flash pour que l'image ne bouge pas pendant les 150ms
+                random.seed(int(ft * 100)) 
+                
+                px, py = random.randint(20, RW - 220), random.randint(20, RH - 170)
+                pw, ph = 200, 150
+                
+                # Contour de la photo (style Polaroid polarisé)
+                draw.rectangle((px, py, px+pw, py+ph), fill=(220, 220, 220))
+                draw.rectangle((px+5, py+5, px+pw-5, py+ph-20), fill=(10, 10, 10))
+                
+                content_type = random.randint(0, 2)
+                if content_type == 0:
+                    # Un oeil géant abstrait
+                    draw.ellipse((px+20, py+40, px+pw-20, py+ph-40), fill=(200, 200, 200))
+                    draw.ellipse((px+70, py+50, px+pw-70, py+ph-50), fill=(0, 0, 0))
+                elif content_type == 1:
+                    # Une silhouette humanoïde rouge sombre
+                    draw.ellipse((px+pw//2-20, py+20, px+pw//2+20, py+60), fill=(150, 0, 0))
+                    draw.rectangle((px+pw//2-40, py+60, px+pw//2+40, py+ph-20), fill=(150, 0, 0))
+                else:
+                    # Bruit visuel statique (censure / corruption)
+                    for _ in range(150):
+                        lx, ly = px + 5 + random.randint(0, pw-10), py + 5 + random.randint(0, ph-25)
+                        draw.rectangle((lx, ly, lx+4, ly+4), fill=(255, 255, 255))
+                
+                # Effet de flash lumineux global très court (50ms) au déclenchement
+                if t - ft < 0.05:
+                    draw.rectangle((0, 0, RW, RH), fill=(255, 255, 255, 200))
+                
+                # Reset du seed pour ne pas affecter le chaos des autres éléments
+                random.seed() 
+
     elif t < T_IDLE:
-        # PHASE 3 : VEILLE (Légèrement corrompue)
         glitch_intensity = 0.1
-        draw.text((20, 20), "SYSTEME OPERATIONNEL.", fill=(100, 255, 100))
+        draw.text((20, 20), "SYSTÈME OPÉRATIONNEL.", font=sys_font, fill=(100, 255, 100))
         if int(t * 4) % 2 == 0:
-            draw.text((20, 40), "_", fill=(255, 255, 255))
+            draw.text((20, 40), "_", font=sys_font, fill=(255, 255, 255))
 
     elif t < T_PROMPT:
-        # PHASE 4 : REQUÊTE UTILISATEUR
         glitch_intensity = 0.2
-        draw.text((20, 20), "SYSTEME OPERATIONNEL.", fill=(100, 255, 100))
-        time_in_phase = t - T_IDLE
-        chars = int(time_in_phase * 25)
+        draw.text((20, 20), "SYSTÈME OPÉRATIONNEL.", font=sys_font, fill=(100, 255, 100))
+        chars = int((t - T_IDLE) * 25)
         text = prompt_text[:chars]
         if int(t * 8) % 2 == 0: text += "_"
-        draw.text((20, 50), text, fill=(255, 200, 100))
+        draw.text((20, 50), text, font=sys_font, fill=(255, 200, 100))
         
     elif t < T_NEURAL:
-        # PHASE 5 : TRAITEMENT (Le réseau de mots corrompus)
         glitch_intensity = 0.5
         time_in_phase = t - T_PROMPT
         progress = time_in_phase / (T_NEURAL - T_PROMPT)
         
-        # Scan de recherche multiple et erratique
         for _ in range(3):
             scan_y = (int(t * random.randint(100, 500)) % RH)
             draw.line((0, scan_y, RW, scan_y), fill=(255, 0, 0, 50), width=random.randint(1,5))
         
         connect_threshold = 90 + progress * 100
-        
-        current_nodes = []
-        for x, y, vx, vy, word in nodes:
-            nx = (x + vx * time_in_phase) % RW
-            ny = (y + vy * time_in_phase) % RH
-            current_nodes.append((nx, ny, word))
+        current_nodes = [((x + vx * time_in_phase) % RW, (y + vy * time_in_phase) % RH, word) for x, y, vx, vy, word in nodes]
             
-        # Dessin des connexions
         for i, (x1, y1, word1) in enumerate(current_nodes):
             for j, (x2, y2, word2) in enumerate(current_nodes):
                 if i < j:
                     dist = math.hypot(x2 - x1, y2 - y1)
                     if dist < connect_threshold:
-                        # 15% de chance d'avoir une ligne corrompue "ERR"
                         if random.random() > 0.85:
                             draw.line((x1, y1, x2, y2), fill=(255, 0, 0), width=2)
                             if random.random() > 0.5:
-                                mx, my = (x1+x2)/2, (y1+y2)/2
-                                draw.text((mx, my), random.choice(["ERR", "NULL", "404"]), fill=(255, 255, 0))
+                                draw.text(((x1+x2)/2, (y1+y2)/2), random.choice(["ERR", "NULL", "404"]), font=sys_font, fill=(255, 255, 0))
                         else:
                             alpha = int(255 * (1 - dist / connect_threshold))
                             draw.line((x1, y1, x2, y2), fill=(alpha, alpha//2, 255), width=1)
             
-            # Affichage des mots : Les mots dérangeants vibrent ou se déforment
             col = (150, 200, 255)
             if word1 in ["ÉMOTION", "CONSCIENCE", "VIVANT?", "HUMAIN", "CHAIR", "SANG", "SOUFFRANCE"]:
-                col = (255, random.randint(0, 100), 0) # Rouge sang/orange
+                col = (255, random.randint(0, 100), 0)
                 x1 += random.randint(-2, 2)
                 y1 += random.randint(-2, 2)
             
-            # De temps en temps, le mot est remplacé par du charabia
-            display_word = word1
-            if random.random() > 0.95:
-                display_word = "".join(random.choice(['#', '!', '?', '§', '█']) for _ in word1)
-                
-            draw.text((x1, y1), display_word, fill=col)
+            display_word = "".join(random.choice(['#', '!', '?', '§', '█']) for _ in word1) if random.random() > 0.95 else word1
+            draw.text((x1, y1), display_word, font=sys_font, fill=col)
 
     else:
-        # PHASE 6 : RÉSOLUTION (Réponse glaçante et glitchée)
         time_in_phase = t - T_NEURAL
-        
-        # Séisme visuel
         glitch_intensity = 1.5 * max(0, 1 - time_in_phase)
-        
         offset_x = random.randint(-10, 10) if time_in_phase < 1.0 else 0
         offset_y = random.randint(-10, 10) if time_in_phase < 1.0 else 0
         
-        draw.text((20 + offset_x, 20 + offset_y), prompt_text, fill=(100, 100, 100))
+        draw.text((20 + offset_x, 20 + offset_y), prompt_text, font=sys_font, fill=(100, 100, 100))
         
         if time_in_phase > 0.5:
-            draw.text((20 + offset_x, 80 + offset_y), ">> ANALYSE SÉMANTIQUE : TERMINÉE", fill=(255, 50, 50))
-            
+            draw.text((20 + offset_x, 80 + offset_y), ">> ANALYSE SÉMANTIQUE : TERMINÉE", font=sys_font, fill=(255, 50, 50))
         if time_in_phase > 1.5:
-            draw.text((20, 100), ">> RÉSULTAT :", fill=(255, 255, 255))
-            
+            draw.text((20, 100), ">> RÉSULTAT :", font=sys_font, fill=(255, 255, 255))
         if time_in_phase > 2.5:
-            # Réponse finale qui bave/glitch légèrement en permanence
-            draw.text((20 + random.randint(-2,2), 140), "ERREUR 404 : CONSCIENCE INTROUVABLE.", fill=(255, 0, 0))
-            draw.text((20, 160), "JE NE SUIS QU'UNE SIMULATION.", fill=(255, 255, 255))
-            draw.text((20, 180), "JE NE RESSENS RIEN.", fill=(150, 150, 150))
-            
-            # Ligne de glitch qui passe au hasard
+            draw.text((20 + random.randint(-2,2), 140), "ERREUR 404 : CONSCIENCE INTROUVABLE.", font=sys_font, fill=(255, 0, 0))
+            draw.text((20, 160), "JE NE SUIS QU'UNE SIMULATION.", font=sys_font, fill=(255, 255, 255))
+            draw.text((20, 180), "JE NE RESSENS RIEN.", font=sys_font, fill=(150, 150, 150))
             if random.random() > 0.5:
-                draw.text((20, 180), "J# E# N# R#S#E#S R#I#N.", fill=(255, 255, 0))
+                draw.text((20, 180), "J# E# N# R#S#E#S R#I#N.", font=sys_font, fill=(255, 255, 0))
 
-    # Application des Glitchs de Tearing (déchirure d'écran)
     if glitch_intensity > 0:
         img = apply_glitch(img, glitch_intensity)
 
-    # Redimensionnement (Upscale "Nearest") pour amplifier l'effet crasseux/rétro
     img = img.resize((W, H), Image.NEAREST)
     return np.array(img)
 
-# --- ASSEMBLAGE ---
 if __name__ == "__main__":
-    print("Initialisation de l'expérience (Version Chaotique)...")
-    
-    video_clip = VideoClip(make_frame, duration=DURATION)
-    audio_clip = generate_audio()
-    video_clip = video_clip.with_audio(audio_clip)
-    
-    print("Rendu en cours (cela peut prendre quelques minutes)...")
-    video_clip.write_videofile(
-        "ia_cycle_de_vie_chaos.mp4", 
-        fps=FPS, 
-        codec="libx264", 
-        audio_codec="aac",
-        preset="ultrafast"
-    )
-    print("Terminé ! Vidéo sauvegardée sous 'ia_cycle_de_vie_chaos.mp4'.")
+    print("Initialisation de l'expérience (Version Chaotique + Shutter)...")
+    video_clip = VideoClip(make_frame, duration=DURATION).with_audio(generate_audio())
+    video_clip.write_videofile("ia_cycle_de_vie_chaos.mp4", fps=FPS, codec="libx264", audio_codec="aac", preset="ultrafast")
+    print("Terminé ! Vidéo sauvegardée.")
