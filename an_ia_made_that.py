@@ -75,7 +75,7 @@ def make_frame(t):
     if t < 4.0:
         # PHASE 1 : INGESTION DES DONNÉES
         # Effet visuel rappelant le chaos de l'analyse lexicale
-        intensity = min(255, int(t * 60))
+        intensity = min(255, max(50, int(t * 60)))
         for _ in range(500):
             x = random.randint(0, W)
             y = random.randint(0, H)
