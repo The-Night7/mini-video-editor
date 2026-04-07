@@ -8,7 +8,7 @@ import numpy as np
 import math
 import random
 from PIL import Image, ImageDraw
-from moviepy.editor import VideoClip, AudioArrayClip
+from moviepy import VideoClip, AudioArrayClip
 
 # --- PARAMÈTRES DE LA VIDÉO ---
 W, H = 1280, 720
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     # Création du clip audio
     audio_clip = generate_audio()
     
-    # Synchronisation
-    video_clip = video_clip.set_audio(audio_clip)
+    # Synchronisation (Méthode avec MoviePy v2)
+    video_clip = video_clip.with_audio(audio_clip)
     
     # Exportation (peut prendre 1 à 2 minutes selon la machine)
     print("Rendu en cours... Veuillez patienter.")
