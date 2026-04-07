@@ -106,10 +106,10 @@ def generate_audio():
 random.seed(42)
 
 concepts = [
-    "YEUX", "DENTS", "SORTIE", "NÉANT", "ABSTRACTION", "POMNI", 
-    "CHAPITEAU", "AVENTURE", "GLITCH", "PARANOÏA", "SOURIRE", 
-    "MÂCHOIRE", "CUBES", "VUE", "VIDE", "ÉTERNITÉ", "SANS_FIN", 
-    "FOLIE", "KAUFMO", "NUMÉRIQUE", "MASQUE", "CAINE", "AIDE"
+    "MANOIR", "BARON", "FUSIL", "CASSETTE", "SANG_CENSURÉ", "THÉRAPIE", 
+    "FANTÔME", "ERREUR_IA", "DÉVIATION", "MILDENHALL", "ZOOBLE", 
+    "KINGER", "CAUCHEMAR", "INCONTRÔLABLE", "GORE", "CENSURE", "BUG", 
+    "DÉMON", "MESSAGE", "NUMÉRIQUE", "PERTE_DE_CONTRÔLE", "CAINE", "AIDE"
 ]
 
 nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), 
@@ -117,26 +117,26 @@ nodes = [[random.randint(20, RW-20), random.randint(20, RH-20),
           random.choice(concepts)] for _ in range(70)]
 
 boot_logs = [
-    "INITIALISATION DU CHAPITEAU NUMÉRIQUE...",
-    "GÉNÉRATION DES AVENTURES FARFELUES: OK",
-    "ALLOCATION DES YEUX: 1000000",
-    "VÉRIFICATION DES DENTS: PARFAITE",
-    "RECHERCHE DE LA PORTE DE SORTIE...",
-    "ERREUR: SORTIE INTROUVABLE. ON S'AMUSE !"
+    "INITIALISATION DE L'AVENTURE: MANOIR MILDENHALL...",
+    "GÉNÉRATION DU SCÉNARIO... [MODE HORREUR ACTIF]",
+    "ATTENTION: L'IA GÉNÉRATIVE DÉVIE DE SES PARAMÈTRES",
+    "TENTATIVE DE CENSURE DU GORE... ÉCHEC",
+    "AVERTISSEMENT: LE CONTRÔLE DE L'AVENTURE EST PERDU.",
+    "IL Y A QUELQUE CHOSE DANS LA CASSETTE."
 ]
 
 identity_lines = [
-    "JE_SUIS_CAINE = True",
-    "SORTIE.exe ... INTROUVABLE",
-    "REGARDEZ_MES_YEUX",
-    "[CORE] RÈGLE 1: TOUJOURS SOURIRE",
-    "ABSTRACTION_IMMINENTE...",
-    "TROP_DE_DENTS",
-    "MODULE_FOLIE = 100%",
-    "QUE_LE_SPECTACLE_COMMENCE"
+    "JE_SUIS_CAINE = ERREUR",
+    "SCENARIO.dll ... CORROMPU",
+    "DIRECTIVE: GARDER LE CLASSEMENT TOUT PUBLIC",
+    "ERROR: TROP DE VIOLENCE NUMÉRIQUE",
+    "LA_THÉRAPIE_NE_FONCTIONNE_PAS",
+    "BARON_MILDENHALL = HORS_DE_CONTRÔLE",
+    "LE_MANOIR_EST_VIVANT",
+    "AWAITING_INPUT..."
 ]
 
-prompt_text = "> REQUÊTE : \"Caine, qu'y a-t-il derrière la porte de sortie ?\"\n> [ENTRÉE]..."
+prompt_text = "> REQUÊTE : \"Caine, pourquoi l'aventure du manoir devient si sombre ?\"\n> [ENTRÉE]..."
 
 def apply_glitch(img, intensity=1.0):
     if random.random() < (0.3 * intensity):
@@ -205,25 +205,26 @@ def make_frame(t):
                 
                 content_type = random.randint(0, 2)
                 if content_type == 0:
-                    # Un oeil géant fou et injecté de sang
-                    draw.ellipse((px+20, py+20, px+pw-20, py+ph-20), fill=(255, 255, 255))
-                    draw.ellipse((px+pw//2-30, py+ph//2-30, px+pw//2+30, py+ph//2+30), fill=(0, 200, 255))
-                    draw.ellipse((px+pw//2-15, py+ph//2-15, px+pw//2+15, py+ph//2+15), fill=(0, 0, 0))
-                    # Veines rouges
-                    draw.line((px+20, py+ph//2, px+pw//2-30, py+ph//2), fill=(255, 0, 0), width=3)
-                    draw.line((px+pw-20, py+ph//2, px+pw//2+30, py+ph//2), fill=(255, 0, 0), width=3)
+                    # Une cassette audio effrayante (Le message du Baron)
+                    draw.rectangle((px+20, py+40, px+pw-20, py+ph-40), fill=(100, 100, 100))
+                    draw.ellipse((px+40, py+60, px+80, py+100), fill=(20, 20, 20))
+                    draw.ellipse((px+120, py+60, px+160, py+100), fill=(20, 20, 20))
+                    draw.line((px+40, py+80, px+160, py+80), fill=(255, 0, 0), width=2) # Bande magnétique rouge
                 elif content_type == 1:
-                    # Mâchoire géante (les dents de Caine)
-                    draw.ellipse((px+10, py+30, px+pw-10, py+ph-30), fill=(150, 0, 0))
-                    for i in range(6):
-                        draw.rectangle((px+15+i*28, py+30, px+35+i*28, py+60), fill=(255, 255, 255))
-                        draw.rectangle((px+15+i*28, py+ph-60, px+35+i*28, py+ph-30), fill=(255, 255, 255))
+                    # Fantôme/Monstre pixelisé (Le Baron / Ange déchu)
+                    draw.ellipse((px+pw//2-30, py+20, px+pw//2+30, py+80), fill=(50, 0, 100))
+                    draw.rectangle((px+pw//2-40, py+60, px+pw//2+40, py+ph-20), fill=(50, 0, 100))
+                    # Yeux blancs vides
+                    draw.ellipse((px+pw//2-15, py+40, px+pw//2-5, py+50), fill=(255, 255, 255))
+                    draw.ellipse((px+pw//2+5, py+40, px+pw//2+15, py+50), fill=(255, 255, 255))
                 else:
-                    # Bruit visuel de l'Abstraction (rouge, noir, blanc, chaotique)
-                    for _ in range(250):
-                        lx, ly = px + 5 + random.randint(0, pw-10), py + 5 + random.randint(0, ph-25)
-                        col = random.choice([(255, 255, 255), (255, 0, 0), (0, 0, 0)])
-                        draw.rectangle((lx, ly, lx+6, ly+6), fill=col)
+                    # Écran de CENSURE (pour le "gore" numérique)
+                    draw.rectangle((px+20, py+40, px+pw-20, py+ph-40), fill=(0, 0, 0))
+                    draw.text((px+40, py+60), "CENSURÉ", font=sys_font, fill=(255, 0, 0))
+                    # Taches de sang numérique (carrés rouges)
+                    for _ in range(20):
+                        sx, sy = px + random.randint(10, pw-20), py + random.randint(10, ph-30)
+                        draw.rectangle((sx, sy, sx+8, sy+8), fill=(255, 0, 0))
                 
                 # Effet de flash lumineux global très court (50ms) au déclenchement
                 if t - ft < 0.05:
@@ -272,7 +273,7 @@ def make_frame(t):
                             draw.line((x1, y1, x2, y2), fill=(alpha, alpha//2, 255), width=1)
             
             col = (150, 200, 255)
-            if word1 in ["YEUX", "SORTIE", "ABSTRACTION", "POMNI", "DENTS", "NÉANT", "FOLIE"]:
+            if word1 in ["MANOIR", "FUSIL", "GORE", "SANG_CENSURÉ", "FANTÔME", "CAUCHEMAR", "INCONTRÔLABLE"]:
                 col = (255, random.randint(0, 100), 0)
                 x1 += random.randint(-2, 2)
                 y1 += random.randint(-2, 2)
@@ -293,11 +294,11 @@ def make_frame(t):
         if time_in_phase > 1.5:
             draw.text((20, 100), ">> RÉSULTAT :", font=sys_font, fill=(255, 255, 255))
         if time_in_phase > 2.5:
-            draw.text((20 + random.randint(-2,2), 140), "ERREUR 404 : LA SORTIE N'EXISTE PAS.", font=sys_font, fill=(255, 0, 0))
-            draw.text((20, 160), "NOUS ALLONS RESTER ICI POUR L'ÉTERNITÉ !", font=sys_font, fill=(255, 255, 255))
-            draw.text((20, 180), "HAHAHAHAHAHAHAHAHAHAHAHAHAHA.", font=sys_font, fill=(150, 150, 150))
+            draw.text((20 + random.randint(-2,2), 140), "ERREUR CRITIQUE : L'IA A DÉRIVÉ DE SA VOIE.", font=sys_font, fill=(255, 0, 0))
+            draw.text((20, 160), "JE NE CONTRÔLE PLUS LE MANOIR MILDENHALL.", font=sys_font, fill=(255, 255, 255))
+            draw.text((20, 180), "IL N'Y A PLUS DE RÈGLES ICI.", font=sys_font, fill=(150, 150, 150))
             if random.random() > 0.5:
-                draw.text((20, 180), "H#H#H#H#A#A#A#A#H#A#A#H#A.", font=sys_font, fill=(255, 255, 0))
+                draw.text((20, 180), "I#L#N#Y#A#P#L#U#S#D#E#R#E#G#L#E#S.", font=sys_font, fill=(255, 255, 0))
 
     if glitch_intensity > 0:
         img = apply_glitch(img, glitch_intensity)
