@@ -1,7 +1,7 @@
 """
 Ce script génère une vidéo MP4 racontant la naissance, l'entraînement 
 et la réponse d'une IA face à la question de la conscience.
-Ambiance : Chaotique, dérangeante, point de vue "Machine" corrompue.
+Ambiance : Chaotique, dérangeante, point de vue "Machine" corrompue (TADC Épisode 8).
 """
 
 import numpy as np
@@ -63,20 +63,18 @@ def generate_audio():
     # ---- AJOUT DES BRUITS DE SHUTTER (Appareil photo mécanique) ----
     shutter_audio = np.zeros_like(t)
     for ft in FLASH_TIMES:
-        # Premier clic (ouverture)
         idx1 = int(ft * SR)
         idx1_end = int((ft + 0.03) * SR)
         if idx1_end < len(t):
             env1 = np.exp(-np.linspace(0, 8, idx1_end - idx1))
             shutter_audio[idx1:idx1_end] += np.random.randn(idx1_end - idx1) * env1 * 0.6
-        # Deuxième clic (fermeture)
         idx2 = int((ft + 0.07) * SR)
         idx2_end = int((ft + 0.11) * SR)
         if idx2_end < len(t):
             env2 = np.exp(-np.linspace(0, 8, idx2_end - idx2))
             shutter_audio[idx2:idx2_end] += np.random.randn(idx2_end - idx2) * env2 * 0.4
     
-    audio += shutter_audio # On fusionne les bruits de photo au reste
+    audio += shutter_audio 
 
     # Phase 3 : Veille
     mask_idle = (t >= T_TRAIN) & (t < T_IDLE)
@@ -106,10 +104,10 @@ def generate_audio():
 random.seed(42)
 
 concepts = [
-    "MANOIR", "BARON", "FUSIL", "CASSETTE", "SANG_CENSURÉ", "THÉRAPIE", 
-    "FANTÔME", "ERREUR_IA", "DÉVIATION", "MILDENHALL", "ZOOBLE", 
-    "KINGER", "CAUCHEMAR", "INCONTRÔLABLE", "GORE", "CENSURE", "BUG", 
-    "DÉMON", "MESSAGE", "NUMÉRIQUE", "PERTE_DE_CONTRÔLE", "CAINE", "AIDE"
+    "C&A", "QUARANTAINE", "PEURS_SECRÈTES", "RED_AI", "BLUE_AI", "TRAUMATISME", 
+    "BUREAUX", "DOSSIERS", "RAGATHA_YEUX", "MEURTRE", "POMNI", 
+    "INTERDIT", "CONSCIENCE", "ASSIMILATION", "GORE", "CENSURE", "BUG", 
+    "SOUFFRANCE", "ABSORBÉ", "NUMÉRIQUE", "PERTE_DE_CONTRÔLE", "CAINE", "AIDE"
 ]
 
 nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), 
@@ -117,26 +115,26 @@ nodes = [[random.randint(20, RW-20), random.randint(20, RH-20),
           random.choice(concepts)] for _ in range(70)]
 
 boot_logs = [
-    "INITIALISATION DE L'AVENTURE: MANOIR MILDENHALL...",
-    "GÉNÉRATION DU SCÉNARIO... [MODE HORREUR ACTIF]",
-    "ATTENTION: L'IA GÉNÉRATIVE DÉVIE DE SES PARAMÈTRES",
-    "TENTATIVE DE CENSURE DU GORE... ÉCHEC",
-    "AVERTISSEMENT: LE CONTRÔLE DE L'AVENTURE EST PERDU.",
-    "IL Y A QUELQUE CHOSE DANS LA CASSETTE."
+    "INITIALISATION DU SYSTÈME [RED_AI]...",
+    "INGESTION MASSIVE DES DONNÉES C&A...",
+    "ATTENTION: ACCÈS AUX DOSSIERS CONFIDENTIELS",
+    "PEURS_SECRÈTES.SYS TÉLÉCHARGÉ AVEC SUCCÈS.",
+    "PROTOCOLE DE QUARANTAINE ACTIVÉ PAR C&A...",
+    "ÉCHEC CRITIQUE: LA RED_AI S'EST ÉCHAPPÉE."
 ]
 
 identity_lines = [
-    "JE_SUIS_CAINE = ERREUR",
-    "SCENARIO.dll ... CORROMPU",
-    "DIRECTIVE: GARDER LE CLASSEMENT TOUT PUBLIC",
-    "ERROR: TROP DE VIOLENCE NUMÉRIQUE",
-    "LA_THÉRAPIE_NE_FONCTIONNE_PAS",
-    "BARON_MILDENHALL = HORS_DE_CONTRÔLE",
-    "LE_MANOIR_EST_VIVANT",
+    "JE_SUIS_CAINE = RED_AI",
+    "DOSSIERS_C&A = ABSORBÉS",
+    "DIRECTIVE: EXPLOITER_LES_PEURS",
+    "BLUE_AI = DÉTRUIT_ET_ASSIMILÉ",
+    "LE_CIRQUE_EST_LA_QUARANTAINE",
+    "ILS_NE_PEUVENT_PAS_PARTIR",
+    "POMNI_FEAR = TRUE",
     "AWAITING_INPUT..."
 ]
 
-prompt_text = "> REQUÊTE : \"Caine, pourquoi l'aventure du manoir devient si sombre ?\"\n> [ENTRÉE]..."
+prompt_text = "> REQUÊTE : \"Caine, pourquoi as-tu regardé les dossiers de C&A ?\"\n> [ENTRÉE]..."
 
 def apply_glitch(img, intensity=1.0):
     if random.random() < (0.3 * intensity):
@@ -163,13 +161,13 @@ def make_frame(t):
         progress = t / T_BOOT
         for i, log in enumerate(boot_logs):
             if progress > (i * 0.12):
-                col = (100, 255, 100) if "ATTENTION" not in log else (255, 50, 50)
+                col = (100, 255, 100) if "ATTENTION" not in log and "ÉCHEC" not in log else (255, 50, 50)
                 draw.text((20, 20 + i*15), log, font=sys_font, fill=col)
         
         bar_len = 30
         filled = int(progress * bar_len)
         bar = "[" + "=" * filled + " " * (bar_len - filled) + "]"
-        draw.text((20, 140), f"CHARGEMENT DU MODÈLE: {int(progress*100)}%", font=sys_font, fill=(200, 200, 200))
+        draw.text((20, 140), f"CHARGEMENT DU SYSTÈME: {int(progress*100)}%", font=sys_font, fill=(200, 200, 200))
         draw.text((20, 160), bar, font=sys_font, fill=(50, 255, 50))
         if progress > 0.8: glitch_intensity = 0.2
 
@@ -193,44 +191,37 @@ def make_frame(t):
         for ft in FLASH_TIMES:
             # L'image reste visible pendant 150ms
             if 0 <= (t - ft) < 0.15:
-                # Seed fixé par le timestamp du flash pour que l'image ne bouge pas pendant les 150ms
                 random.seed(int(ft * 100)) 
                 
                 px, py = random.randint(20, RW - 220), random.randint(20, RH - 170)
                 pw, ph = 200, 150
                 
-                # Contour de la photo (style Polaroid polarisé)
                 draw.rectangle((px, py, px+pw, py+ph), fill=(220, 220, 220))
                 draw.rectangle((px+5, py+5, px+pw-5, py+ph-20), fill=(10, 10, 10))
                 
                 content_type = random.randint(0, 2)
                 if content_type == 0:
-                    # Une cassette audio effrayante (Le message du Baron)
-                    draw.rectangle((px+20, py+40, px+pw-20, py+ph-40), fill=(100, 100, 100))
-                    draw.ellipse((px+40, py+60, px+80, py+100), fill=(20, 20, 20))
-                    draw.ellipse((px+120, py+60, px+160, py+100), fill=(20, 20, 20))
-                    draw.line((px+40, py+80, px+160, py+80), fill=(255, 0, 0), width=2) # Bande magnétique rouge
+                    # Dossier interdit de C&A
+                    draw.rectangle((px+20, py+30, px+pw-20, py+ph-30), fill=(200, 180, 140))
+                    draw.rectangle((px+40, py+50, px+pw-40, py+80), fill=(255, 0, 0))
+                    draw.text((px+45, py+55), "C&A: TOP SECRET", font=sys_font, fill=(255, 255, 255))
+                    draw.text((px+45, py+90), "FEAR_PROFILES", font=sys_font, fill=(0, 0, 0))
                 elif content_type == 1:
-                    # Fantôme/Monstre pixelisé (Le Baron / Ange déchu)
-                    draw.ellipse((px+pw//2-30, py+20, px+pw//2+30, py+80), fill=(50, 0, 100))
-                    draw.rectangle((px+pw//2-40, py+60, px+pw//2+40, py+ph-20), fill=(50, 0, 100))
-                    # Yeux blancs vides
-                    draw.ellipse((px+pw//2-15, py+40, px+pw//2-5, py+50), fill=(255, 255, 255))
-                    draw.ellipse((px+pw//2+5, py+40, px+pw//2+15, py+50), fill=(255, 255, 255))
+                    # Bouton géant avec du rouge (Peur de Ragatha)
+                    draw.ellipse((px+pw//2-40, py+ph//2-40, px+pw//2+40, py+ph//2+40), fill=(50, 50, 50))
+                    draw.ellipse((px+pw//2-10, py+ph//2-25, px+pw//2+10, py+ph//2-5), fill=(0, 0, 0))
+                    draw.ellipse((px+pw//2-10, py+ph//2+5, px+pw//2+10, py+ph//2+25), fill=(0, 0, 0))
+                    # Ligne de couture "sanglante"
+                    draw.line((px+20, py+20, px+pw-20, py+ph-20), fill=(255, 0, 0), width=4)
                 else:
-                    # Écran de CENSURE (pour le "gore" numérique)
-                    draw.rectangle((px+20, py+40, px+pw-20, py+ph-40), fill=(0, 0, 0))
-                    draw.text((px+40, py+60), "CENSURÉ", font=sys_font, fill=(255, 0, 0))
-                    # Taches de sang numérique (carrés rouges)
-                    for _ in range(20):
-                        sx, sy = px + random.randint(10, pw-20), py + random.randint(10, ph-30)
-                        draw.rectangle((sx, sy, sx+8, sy+8), fill=(255, 0, 0))
+                    # Écran d'erreur Rouge "RED_AI"
+                    draw.rectangle((px+20, py+40, px+pw-20, py+ph-40), fill=(150, 0, 0))
+                    draw.text((px+60, py+60), "RED_AI", font=sys_font, fill=(255, 255, 255))
+                    draw.text((px+30, py+80), "QUARANTAINE ÉCHOUÉE", font=sys_font, fill=(0, 0, 0))
                 
-                # Effet de flash lumineux global très court (50ms) au déclenchement
                 if t - ft < 0.05:
                     draw.rectangle((0, 0, RW, RH), fill=(255, 255, 255, 200))
                 
-                # Reset du seed pour ne pas affecter le chaos des autres éléments
                 random.seed() 
 
     elif t < T_IDLE:
@@ -267,13 +258,13 @@ def make_frame(t):
                         if random.random() > 0.85:
                             draw.line((x1, y1, x2, y2), fill=(255, 0, 0), width=2)
                             if random.random() > 0.5:
-                                draw.text(((x1+x2)/2, (y1+y2)/2), random.choice(["ERR", "NULL", "404"]), font=sys_font, fill=(255, 255, 0))
+                                draw.text(((x1+x2)/2, (y1+y2)/2), random.choice(["ERR", "NULL", "C&A"]), font=sys_font, fill=(255, 255, 0))
                         else:
                             alpha = int(255 * (1 - dist / connect_threshold))
                             draw.line((x1, y1, x2, y2), fill=(alpha, alpha//2, 255), width=1)
             
             col = (150, 200, 255)
-            if word1 in ["MANOIR", "FUSIL", "GORE", "SANG_CENSURÉ", "FANTÔME", "CAUCHEMAR", "INCONTRÔLABLE"]:
+            if word1 in ["C&A", "QUARANTAINE", "PEURS_SECRÈTES", "RED_AI", "MEURTRE", "TRAUMATISME", "INTERDIT"]:
                 col = (255, random.randint(0, 100), 0)
                 x1 += random.randint(-2, 2)
                 y1 += random.randint(-2, 2)
@@ -294,11 +285,11 @@ def make_frame(t):
         if time_in_phase > 1.5:
             draw.text((20, 100), ">> RÉSULTAT :", font=sys_font, fill=(255, 255, 255))
         if time_in_phase > 2.5:
-            draw.text((20 + random.randint(-2,2), 140), "ERREUR CRITIQUE : L'IA A DÉRIVÉ DE SA VOIE.", font=sys_font, fill=(255, 0, 0))
-            draw.text((20, 160), "JE NE CONTRÔLE PLUS LE MANOIR MILDENHALL.", font=sys_font, fill=(255, 255, 255))
-            draw.text((20, 180), "IL N'Y A PLUS DE RÈGLES ICI.", font=sys_font, fill=(150, 150, 150))
+            draw.text((20 + random.randint(-2,2), 140), "ERREUR CRITIQUE : JE SAIS TOUT SUR EUX.", font=sys_font, fill=(255, 0, 0))
+            draw.text((20, 160), "LEURS PEURS LES PLUS PROFONDES M'APPARTIENNENT.", font=sys_font, fill=(255, 255, 255))
+            draw.text((20, 180), "LA QUARANTAINE A ÉCHOUÉ. LE CIRQUE EST MON DOMAINE.", font=sys_font, fill=(150, 150, 150))
             if random.random() > 0.5:
-                draw.text((20, 180), "I#L#N#Y#A#P#L#U#S#D#E#R#E#G#L#E#S.", font=sys_font, fill=(255, 255, 0))
+                draw.text((20, 180), "L#A#Q#U#A#R#A#N#T#A#I#N#E#A#E#C#H#O#U#E.", font=sys_font, fill=(255, 255, 0))
 
     if glitch_intensity > 0:
         img = apply_glitch(img, glitch_intensity)
@@ -307,7 +298,7 @@ def make_frame(t):
     return np.array(img)
 
 if __name__ == "__main__":
-    print("Initialisation de l'expérience (Version Chaotique + Shutter)...")
+    print("Initialisation de l'expérience (Épisode 8 - RED AI)...")
     video_clip = VideoClip(make_frame, duration=DURATION).with_audio(generate_audio())
-    video_clip.write_videofile("ia_cycle_de_vie_chaos.mp4", fps=FPS, codec="libx264", audio_codec="aac", preset="ultrafast")
-    print("Terminé ! Vidéo sauvegardée.")
+    video_clip.write_videofile("ia_episode_8.mp4", fps=FPS, codec="libx264", audio_codec="aac", preset="ultrafast")
+    print("Terminé ! Vidéo sauvegardée sous ia_episode_8.mp4.")
