@@ -1,7 +1,7 @@
 """
 Ce script génère une vidéo MP4 du point de vue d'une IA (Caine).
-Il intègre le réseau de neurones au premier plan, des animations de requêtes interactives,
-et un CHAOS ABSOLU dans la phase finale (Tremblements, Inversions, Glitchs extrêmes).
+Il intègre des animations de requêtes interactives avec une rupture psychologique
+mise en scène par des glitchs "Genèse" et une Erreur Système massive et menaçante.
 """
 
 import numpy as np
@@ -21,8 +21,8 @@ SR = 44100
 T_BOOT = 6.0      # Chargement
 T_GENESIS = 14.0  # Caine "I AM GOD", création du cirque
 T_REJECT = 22.0   # Le cast refuse
-T_CONFRONT = 30.0 # Animation de requête (Typing), insultes
-T_SNAP = 40.0     # PÉTAGE DE PLOMBS (CHAOS TOTAL)
+T_CONFRONT = 30.0 # Animation de requête (Typing) -> Glitch Boules -> System Error
+T_SNAP = 40.0     # PÉTAGE DE PLOMBS (CHAOS TOTAL + RÉSEAU DE NEURONES)
 T_DELETE = 45.0   # Suppression
 
 FLASH_TIMES = [31.0, 32.5, 34.0, 35.5, 37.0, 38.5, 39.5]
@@ -41,7 +41,7 @@ except IOError:
 
 # --- GÉNÉRATION DE L'AUDIO ---
 def generate_audio():
-    print("Génération de l'audio (Boot -> Requête -> CHAOS ABSOLU -> Delete)...")
+    print("Génération de l'audio (Boot -> Requête -> Genèse Glitch -> CHAOS -> Delete)...")
     t = np.linspace(0, DURATION, int(SR * DURATION), endpoint=False)
     audio = np.zeros_like(t)
     
@@ -57,7 +57,7 @@ def generate_audio():
     audio[mask_gen] = 0.1 * np.sin(2 * np.pi * freq_arr * t)[mask_gen]
     
     mask_absorb = (t >= 9.5) & (t < 10.5)
-    audio[mask_absorb] += 0.25 * np.random.randn(len(t))[mask_absorb] # Gros glitch
+    audio[mask_absorb] += 0.25 * np.random.randn(len(t))[mask_absorb]
 
     # 3. Reject
     mask_reject = (t >= T_GENESIS) & (t < T_REJECT)
@@ -65,26 +65,39 @@ def generate_audio():
     pitch_drop = 300 * np.exp(-2 * t_drop)
     audio[mask_reject] = 0.15 * np.sin(2 * np.pi * pitch_drop * t_drop) + 0.05 * np.random.randn(len(t))[mask_reject]
     
-    # 4. Confront (Typing frénétique)
+    # 4. Confront (Typing -> Glitch Boules -> SYSTEM ERROR)
     mask_confront = (t >= T_REJECT) & (t < T_CONFRONT)
-    typing = 0.25 * np.random.randn(len(t)) * (np.sin(2 * np.pi * 18 * t) > 0.4).astype(float)
-    drone_tension = 0.15 * np.sin(2 * np.pi * (40 + 5 * (t - T_REJECT)) * t)
-    audio[mask_confront] = typing[mask_confront] + drone_tension[mask_confront]
     
-    # 5. Snap (Surcharge, bruit blanc, distorsion, ça fait mal aux oreilles "machine")
+    # a. Typing
+    mask_typing = (t >= T_REJECT) & (t < 27.5)
+    typing = 0.25 * np.random.randn(len(t)) * (np.sin(2 * np.pi * 18 * t) > 0.4).astype(float)
+    audio[mask_typing] += typing[mask_typing]
+    
+    # b. Glitch Boules ("I AM GOD" callback)
+    mask_balls = (t >= 27.5) & (t < 28.5)
+    screech_balls = 0.4 * np.sign(np.sin(2 * np.pi * 800 * t)) * np.random.randn(len(t))
+    audio[mask_balls] += screech_balls[mask_balls]
+    
+    # c. SYSTEM ERROR (Bass drop lourd)
+    mask_error = (t >= 28.5) & (t < T_CONFRONT)
+    bass_error = 0.5 * np.sin(2 * np.pi * 40 * t) * np.exp(-2 * (t - 28.5))
+    audio[mask_error] += bass_error[mask_error] + 0.1 * np.random.randn(len(t))[mask_error]
+    
+    # Tension drone
+    drone_tension = 0.15 * np.sin(2 * np.pi * (40 + 5 * (t - T_REJECT)) * t)
+    audio[mask_confront] += drone_tension[mask_confront]
+    
+    # 5. Snap
     mask_snap = (t >= T_CONFRONT) & (t < T_SNAP)
     screech = 0.4 * np.sign(np.sin(2 * np.pi * (100 + 1500 * np.random.rand(len(t))) * t))
     bass_roar = 0.3 * np.sin(2 * np.pi * 35 * t) * (1 + np.sin(2 * np.pi * 15 * t))
     audio[mask_snap] = screech[mask_snap] + bass_roar[mask_snap] + 0.2 * np.random.randn(len(t))[mask_snap]
     
-    # Bruits de shutter agressifs
-    shutter_audio = np.zeros_like(t)
     for ft in FLASH_TIMES:
         idx1, idx1_end = int(ft * SR), int((ft + 0.04) * SR)
-        if idx1_end < len(t): shutter_audio[idx1:idx1_end] += np.random.randn(idx1_end - idx1) * 1.0
+        if idx1_end < len(t): shutter_audio = np.random.randn(idx1_end - idx1) * 1.0; audio[idx1:idx1_end] += shutter_audio
         idx2, idx2_end = int((ft + 0.08) * SR), int((ft + 0.15) * SR)
-        if idx2_end < len(t): shutter_audio[idx2:idx2_end] += np.random.randn(idx2_end - idx2) * 0.8
-    audio += shutter_audio 
+        if idx2_end < len(t): shutter_audio = np.random.randn(idx2_end - idx2) * 0.8; audio[idx2:idx2_end] += shutter_audio
 
     # 6. Delete
     mask_end = (t >= T_SNAP)
@@ -92,13 +105,11 @@ def generate_audio():
     if idx_del_end < len(t):
         audio[idx_del:idx_del_end] = 0.5 * np.sin(2 * np.pi * 1500 * t[idx_del:idx_del_end]) * np.exp(-np.linspace(0, 5, idx_del_end - idx_del))
         
-    # Son de "pop" (Caine disparait)
     pop_time = T_SNAP + 1.5
     idx_pop, idx_pop_end = int(pop_time * SR), int((pop_time + 0.05) * SR)
     if idx_pop_end < len(t):
         audio[idx_pop:idx_pop_end] += 0.8 * np.random.randn(idx_pop_end - idx_pop) * np.exp(-np.linspace(0, 10, idx_pop_end - idx_pop))
         
-    # Glitch sonore final
     glitch_time = T_SNAP + 4.0
     idx_glitch = int(glitch_time * SR)
     if idx_glitch < len(t):
@@ -111,33 +122,24 @@ def generate_audio():
 # --- GÉNÉRATION DE L'IMAGE ---
 random.seed(42)
 
-words_boot = ["TADC_OS", "RED_DOT", "ABEL", "ASSIMILATION", "INIT", "TENT", "C&A"]
-words_gen = ["AVENTURE", "FUN", "I_AM_GOD", "PERFECTION", "PUZZLE", "SMILE", "CRÉATION"]
-words_reject = ["DEFECTIVE", "FAULTY", "BROKEN", "UNWORTHY", "ABANDON", "REJET", "HATE"]
-words_confront = ["SUCK", "FAILURE", "FRAGILE", "EGO", "CHILD", "LIAR", "DEAF"]
 words_snap = ["TORMENT", "PLACE", "CROCODILE", "KNIFE", "TRUCK", "FLAYED", "MONSTER", "SANG", "ABSTRACTION", "CENSURÉ"]
+nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), random.uniform(-10, 10), random.uniform(-10, 10), i] for i in range(60)]
 
-nodes = [[random.randint(20, RW-20), random.randint(20, RH-20), 
-          random.uniform(-10, 10), random.uniform(-10, 10), i] for i in range(60)]
-
-# Animation de Requête (Typing)
+# Lignes de requête
 prompt_lines = [
     "> POMNI: \"We think your ideas suck!\"",
     "> CAINE: \"That's not... true.\"",
     "> POMNI: \"Yes it is! You're a failure!\"",
     "> ZOOBLE: \"What kind of all powerful being has such a fragile ego?!\"",
     "> JAX: \"You lie to us constantly!\"",
-    "> POMNI: \"You just... don't... listen!\"",
-    "> SYSTEM_ERROR: EGO FRACTURED."
+    "> POMNI: \"You just... don't... listen!\""
 ]
 
 def apply_glitch(img, intensity=1.0, rgb_split=False, invert=False):
-    # Tremblement (Shake)
     if intensity > 1.0:
         dx, dy = random.randint(-10, 10), random.randint(-10, 10)
         img = ImageChops.offset(img, dx, dy)
 
-    # Tearing
     if random.random() < (0.5 * intensity):
         y = random.randint(0, RH - 30)
         h = random.randint(10, 50)
@@ -145,7 +147,6 @@ def apply_glitch(img, intensity=1.0, rgb_split=False, invert=False):
         region = img.crop((0, y, RW, y + h))
         img.paste(region, (shift, y))
     
-    # RGB Split extrême
     if rgb_split and random.random() < (0.7 * intensity):
         r, g, b = img.split()
         ox, oy = random.randint(-25, 25), random.randint(-10, 10)
@@ -153,7 +154,6 @@ def apply_glitch(img, intensity=1.0, rgb_split=False, invert=False):
         b = ImageChops.offset(b, -ox, -oy)
         img = Image.merge("RGB", (r, g, b))
         
-    # Inversion de couleur stroboscopique
     if invert and random.random() < 0.2:
         img = ImageOps.invert(img)
         
@@ -167,7 +167,6 @@ def draw_shutter_image(draw, px, py, pw, ph, t):
     fear_idx = int((t - T_CONFRONT) / 2.0) % 4
     
     if fear_idx == 0:
-        # Gummigoo Crocodile
         draw.rectangle((ix, iy, ix+iw, iy+ih), fill=(0, 40, 0))
         draw.polygon([(ix, iy+ih), (ix+iw, iy+ih), (ix+iw//2, iy+20)], fill=(0, 90, 0))
         for j in range(5):
@@ -176,7 +175,6 @@ def draw_shutter_image(draw, px, py, pw, ph, t):
         draw.ellipse((ix+iw//2-5, iy+50, ix+iw//2+5, iy+80), fill=(0, 0, 0))
 
     elif fear_idx == 1:
-        # Couteaux Ragatha
         draw.rectangle((ix, iy, ix+iw, iy+ih), fill=(40, 0, 0))
         draw.ellipse((ix+iw//2-40, iy+ih//2-40, ix+iw//2+40, iy+ih//2+40), fill=(0, 0, 150))
         draw.line((ix, iy, ix+iw, iy+ih), fill=(255, 0, 0), width=8)
@@ -185,7 +183,6 @@ def draw_shutter_image(draw, px, py, pw, ph, t):
             draw.polygon([(cx-5, cy-40), (cx+5, cy-40), (cx+20, cy), (cx-20, cy)], fill=(200, 200, 200))
 
     elif fear_idx == 2:
-        # Camion Gangle
         draw.rectangle((ix, iy, ix+iw, iy+ih), fill=(15, 15, 15))
         draw.ellipse((ix+10, iy+ih//2-40, ix+80, iy+ih//2+40), fill=(255, 255, 255))
         draw.ellipse((ix+iw-80, iy+ih//2-40, ix+iw-10, iy+ih//2+40), fill=(255, 255, 255))
@@ -193,7 +190,6 @@ def draw_shutter_image(draw, px, py, pw, ph, t):
         draw.line((ix+iw//2-15, iy+10, ix+iw//2+15, iy+90), fill=(15, 15, 15), width=8)
 
     elif fear_idx == 3:
-        # Écorché Jax
         draw.rectangle((ix, iy, ix+iw, iy+ih), fill=(255, 255, 0))
         draw.polygon([(ix, iy), (ix+70, iy), (ix, iy+ih)], fill=(120, 0, 200))
         draw.polygon([(ix+iw, iy), (ix+iw-70, iy), (ix+iw, iy+ih)], fill=(120, 0, 200))
@@ -207,14 +203,12 @@ def make_frame(t):
         draw = ImageDraw.Draw(img)
         time_del = t - T_SNAP
         
-        # Point rouge (Caine) au centre qui tremble et disparait
         if time_del < 1.5:
             pulse = int(2 * math.sin(time_del * 50))
             radius = max(1, 10 - int(time_del * 4) + pulse)
             cx, cy = RW // 2, RH // 2
             draw.ellipse((cx-radius, cy-radius, cx+radius, cy+radius), fill=(255, 0, 0))
             
-        # Messages terminaux en haut à gauche
         if time_del >= 1.5:
             msg1 = "caine was successfully deleted"
             if random.random() > 0.85:
@@ -227,7 +221,6 @@ def make_frame(t):
                 msg2 = "".join(random.choice(['%', '&', '$', '█']) if random.random() > 0.8 else c for c in msg2)
             draw.text((10, 30), msg2, font=sys_font, fill=(255, 50, 50))
             
-        # Glitch visuel final sur tout l'écran
         if time_del >= 4.0:
             for _ in range(300):
                 gx, gy = random.randint(0, RW), random.randint(0, RH)
@@ -239,7 +232,6 @@ def make_frame(t):
         return np.array(img.resize((W, H), Image.NEAREST))
 
     # ================= PHASES 1 à 5 =================
-    # Couche 1 : Arrière-plan Narratif (Sombre)
     img = Image.new('RGB', (RW, RH), (10, 10, 15))
     draw = ImageDraw.Draw(img)
     
@@ -247,7 +239,6 @@ def make_frame(t):
     rgb_split_active = False
     invert_colors = False
 
-    # Décors de fond selon la phase
     if t < T_BOOT:
         progress = t / T_BOOT
         draw.text((20, 20), "[C&A_SYS] INITIALISATION...", font=sys_font, fill=(100, 255, 100))
@@ -272,34 +263,83 @@ def make_frame(t):
         glitch_intensity = 0.2
 
     elif t < T_CONFRONT:
-        # ANIMATION DE REQUÊTE : Boîte de terminal noire bien visible au centre
-        draw.rectangle((0, 0, RW, RH), fill=(40, 0, 0))
-        glitch_intensity = 0.5
-        
-        # Terminal Box
-        box_y = 40
-        draw.rectangle((10, box_y, RW-10, RH-40), fill=(5, 5, 10), outline=(255, 50, 50), width=2)
-        
-        progress = (t - T_REJECT) / (T_CONFRONT - T_REJECT)
-        total_chars = int(progress * 400) # Vitesse de frappe
-        
-        chars_drawn = 0
-        current_y = box_y + 10
-        for line in prompt_lines:
-            if chars_drawn >= total_chars: break
-            chars_to_draw = min(len(line), total_chars - chars_drawn)
-            displayed_text = line[:chars_to_draw]
+        # T_CONFRONT est coupé en 3 sous-phases d'animation
+        if t < 27.5:
+            # 1. Animation Typing (avec impact renforcé sur la dernière ligne)
+            draw.rectangle((0, 0, RW, RH), fill=(40, 0, 0))
+            glitch_intensity = 0.5
+            box_y = 40
+            draw.rectangle((10, box_y, RW-10, RH-40), fill=(5, 5, 10), outline=(255, 50, 50), width=2)
             
-            col = (255, 200, 50) if "> POMNI" in line or "> ZOOBLE" in line or "> JAX" in line else (200, 200, 200)
-            if "ERROR" in line: col = (255, 0, 0)
+            progress = (t - T_REJECT) / (27.5 - T_REJECT)
+            total_chars = int(progress * 300) # Assure que le texte se termine avant 27.5
             
-            # Effet de curseur
-            if chars_to_draw == len(line) and chars_drawn + chars_to_draw == total_chars and int(t*10)%2==0:
-                displayed_text += "_"
+            chars_drawn = 0
+            current_y = box_y + 10
+            for line in prompt_lines:
+                if chars_drawn >= total_chars: break
+                chars_to_draw = min(len(line), total_chars - chars_drawn)
+                displayed_text = line[:chars_to_draw]
                 
-            draw.text((20, current_y), displayed_text, font=sys_font, fill=col)
-            chars_drawn += len(line)
-            current_y += 25
+                is_last_line = ("don't... listen!" in line)
+                col = (255, 200, 50) if "> POMNI" in line or "> ZOOBLE" in line or "> JAX" in line else (200, 200, 200)
+                
+                # Effet d'impact intense pour Pomni
+                if is_last_line:
+                    col = (255, 50, 50)
+                    if chars_to_draw > 0: glitch_intensity = max(glitch_intensity, 1.5)
+                    
+                if chars_to_draw == len(line) and chars_drawn + chars_to_draw == total_chars and int(t*10)%2==0:
+                    displayed_text += "_"
+                    
+                # Rendu du texte avec effet gras/tremblant pour la phrase clé
+                if is_last_line:
+                    shake_x, shake_y = random.randint(-2, 2), random.randint(-2, 2)
+                    draw.text((20+1+shake_x, current_y+shake_y), displayed_text, font=sys_font, fill=col)
+                    draw.text((20+shake_x, current_y+1+shake_y), displayed_text, font=sys_font, fill=col)
+                    draw.text((20+shake_x, current_y+shake_y), displayed_text, font=sys_font, fill=col)
+                else:
+                    draw.text((20, current_y), displayed_text, font=sys_font, fill=col)
+                    
+                chars_drawn += len(line)
+                current_y += 25
+
+        elif t < 28.5:
+            # 2. Le Glitch "Genèse" des boules "I am GOD"
+            glitch_intensity = 2.0
+            invert_colors = random.choice([True, False])
+            draw.rectangle((0, 0, RW, RH), fill=(0, 0, 0))
+            
+            # Avalanche de points rouges de Caine
+            for _ in range(80):
+                rx, ry = random.randint(0, RW), random.randint(0, RH)
+                r_size = random.randint(10, 80)
+                draw.ellipse((rx, ry, rx+r_size, ry+r_size), fill=(255, 0, 0))
+            
+            # Point bleu (Abel) clignotant
+            if int(t * 20) % 2 == 0:
+                cx, cy = RW//2, RH//2
+                draw.ellipse((cx-100, cy-100, cx+100, cy+100), fill=(0, 0, 255))
+                
+        else:
+            # 3. Le SYSTEM ERROR massif et menaçant sur tout l'écran
+            glitch_intensity = 0.5
+            rgb_split_active = True
+            draw.rectangle((0, 0, RW, RH), fill=(30, 0, 0)) # Fond rouge très sombre
+            
+            # On dessine l'erreur sur une petite image pour la grossir violemment (effet pixel menaçant)
+            err_img = Image.new('RGBA', (180, 40), (0,0,0,0))
+            err_draw = ImageDraw.Draw(err_img)
+            err_draw.text((5, 0), "SYSTEM_ERROR:", font=sys_font, fill=(255, 0, 0))
+            err_draw.text((5, 15), "EGO FRACTURED.", font=sys_font, fill=(255, 255, 0))
+            
+            scale_factor = 4
+            big_err = err_img.resize((180*scale_factor, 40*scale_factor), Image.NEAREST)
+            
+            bx = RW//2 - big_err.width//2 + random.randint(-5, 5)
+            by = RH//2 - big_err.height//2 + random.randint(-5, 5)
+            
+            img.paste(big_err, (bx, by), big_err)
 
     elif t < T_SNAP:
         # LE CHAOS ABSOLU
@@ -307,11 +347,9 @@ def make_frame(t):
         rgb_split_active = True
         invert_colors = True
         
-        # Fond stroboscopique
         bg_col = int(100 + 155 * math.sin(t * 30))
         draw.rectangle((0, 0, RW, RH), fill=(bg_col, 0, 0))
         
-        # Pluie de données corrompues
         for _ in range(50):
             draw.text((random.randint(0, RW), random.randint(0, RH)), random.choice(['#','!','?','ERR','NULL']), font=sys_font, fill=(0,0,0))
 
@@ -328,7 +366,7 @@ def make_frame(t):
 
     # Couche 2 : LE RÉSEAU DE NEURONES (Uniquement pendant le pétage de plombs)
     if t >= T_CONFRONT and t < T_SNAP:
-        word_list, speed_mult, connect_dist = words_snap, 12.0, 200 # Explosion de vitesse
+        word_list, speed_mult, connect_dist = words_snap, 12.0, 200
             
         current_nodes = []
         for x, y, vx, vy, idx in nodes:
@@ -337,19 +375,17 @@ def make_frame(t):
             current_nodes.append((nx, ny, word_list[idx % len(word_list)]))
             
         for i, (x1, y1, w1) in enumerate(current_nodes):
-            if random.random() > 0.9: continue # Scintillement fort
+            if random.random() > 0.9: continue
             
             for j, (x2, y2, w2) in enumerate(current_nodes):
                 if i < j:
                     dist = math.hypot(x2 - x1, y2 - y1)
                     if dist < connect_dist:
                         alpha = int(255 * (1 - dist / connect_dist))
-                        col_line = (255, 0, 0) # Lignes de sang
+                        col_line = (255, 0, 0)
                         draw.line((x1, y1, x2, y2), fill=col_line, width=2)
             
             col_text = (255, 255, 0) if random.random() > 0.5 else (255, 0, 0)
-            
-            # Mots qui se transforment en blocs noirs/rouges dans le chaos
             display_word = "".join(random.choice(['█', 'X', 'ERR']) for _ in w1) if random.random() > 0.8 else w1
             draw.text((x1, y1), display_word, font=sys_font, fill=col_text)
 
