@@ -8,198 +8,145 @@ import math
 # ─── CONFIG ─────────────────────────────────────────────────────────
 WIDTH, HEIGHT = 1280, 720
 FPS = 30
-DURATION = 15  # secondes (durée du MP4)
+DURATION = 41
 TOTAL_FRAMES = FPS * DURATION
 OUTPUT_DIR = "frames_epic"
 OUTPUT_VIDEO = "epic_animation.mp4"
-MUSIC_FILE = "Need Her To Be Mine  EPIC The Musical (Cut song) Animatic.mp4"
+MUSIC_FILE = "epic_music.mp3"  # yt-dlp -x --audio-format mp3 ...
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ─── COULEURS ───────────────────────────────────────────────────────
-BG_COLOR        = (10, 5, 25)        # Fond sombre / nuit grecque
-PUPPET_COLOR    = (139, 90, 43)      # Bois marron
-PUPPET_JOINT    = (80, 50, 20)       # Articulations sombres
-STRING_COLOR    = (200, 180, 140)    # Fils de marionnette
-GOD_GLOW        = (255, 220, 80)     # Aura dorée des dieux
-GOD_SKIN        = (255, 200, 120)    # Peau lumineuse
-GOD_ROBE        = (180, 100, 255)    # Robe violette (Aphrodite)
-STAR_COLOR      = (255, 255, 200)    # Étoiles
+BG_COLOR      = (10, 5, 25)
+PUPPET_COLOR  = (139, 90, 43)
+PUPPET_JOINT  = (80, 50, 20)
+GOD_GLOW      = (255, 220, 80)
+GOD_SKIN      = (255, 200, 120)
+GOD_ROBE = (180, 100, 255) 
+ATHENA_ROBE   = (100, 160, 255)   # Bleu sagesse
+PENELOPE_ROBE = (200, 120, 160)   # Rose doux
 
 # ─── UTILITAIRES ────────────────────────────────────────────────────
-def lerp(a, b, t):
-    return a + (b - a) * t
+def lerp(a, b, t):      return a + (b - a) * t
+def ease_in_out(t):     return t * t * (3 - 2 * t)
+def clamp(v, lo, hi):   return max(lo, min(hi, v))
+def pulse(t, freq=1.0): return 0.5 + 0.5 * math.sin(t * freq * 2 * math.pi)
 
-def ease_in_out(t):
-    return t * t * (3 - 2 * t)
-
-def pulse(t, freq=1.0):
-    return 0.5 + 0.5 * math.sin(t * freq * 2 * math.pi)
-
-# ─── DESSIN : ÉTOILES EN FOND ───────────────────────────────────────
-def draw_stars(draw, frame, count=80):
-    rng = np.random.RandomState(42)
-    for i in range(count):
-        x = int(rng.uniform(0, WIDTH))
-        y = int(rng.uniform(0, HEIGHT * 0.6))
-        twinkle = 0.5 + 0.5 * math.sin(frame * 0.05 + i)
-        brightness = int(150 + 105 * twinkle)
-        r = int(rng.uniform(1, 3))
-        draw.ellipse([x-r, y-r, x+r, y+r],
-                     fill=(brightness, brightness, int(brightness * 0.9)))
-
-# ─── DESSIN : SOL / DÉCOR GREC ──────────────────────────────────────
+# ─── FOND ───────────────────────────────────────────────────────────
 def draw_background(draw, frame):
-    t = frame / TOTAL_FRAMES
-
-    # Ciel dégradé (simulé par bandes)
     for y in range(HEIGHT):
         ratio = y / HEIGHT
         r = int(lerp(10, 30, ratio))
-        g = int(lerp(5, 10, ratio))
-        b = int(lerp(25, 60, ratio))
+        g = int(lerp(5, 15, ratio))
+        b = int(lerp(40, 70, ratio))
         draw.line([(0, y), (WIDTH, y)], fill=(r, g, b))
 
-    draw_stars(draw, frame)
+    # Étoiles
+    rng = np.random.RandomState(42)
+    for i in range(100):
+        x = int(rng.uniform(0, WIDTH))
+        y = int(rng.uniform(0, HEIGHT * 0.65))
+        twinkle = 0.5 + 0.5 * math.sin(frame * 0.04 + i * 1.3)
+        b2 = int(140 + 115 * twinkle)
+        draw.ellipse([x-1, y-1, x+1, y+1], fill=(b2, b2, int(b2*0.9)))
 
-    # Sol (marbre)
-    ground_y = int(HEIGHT * 0.75)
+    # Sol
+    ground_y = int(HEIGHT * 0.76)
     for y in range(ground_y, HEIGHT):
         ratio = (y - ground_y) / (HEIGHT - ground_y)
-        c = int(lerp(40, 20, ratio))
+        c = int(lerp(45, 22, ratio))
         draw.line([(0, y), (WIDTH, y)], fill=(c, c, int(c * 1.1)))
 
-    # Colonnes grecques
-    for cx in [150, 350, 930, 1130]:
-        col_w, col_h = 40, int(HEIGHT * 0.45)
+    # Colonnes
+    for cx in [100, 280, 1000, 1180]:
+        col_h = int(HEIGHT * 0.42)
         col_y = ground_y - col_h
-        draw.rectangle([cx, col_y, cx + col_w, ground_y],
-                        fill=(55, 50, 70), outline=(80, 75, 100))
-        # Chapiteau
-        draw.rectangle([cx - 10, col_y, cx + col_w + 10, col_y + 20],
-                        fill=(65, 60, 80))
+        draw.rectangle([cx, col_y, cx+35, ground_y],
+                       fill=(50, 45, 65), outline=(75, 70, 95))
+        draw.rectangle([cx-8, col_y, cx+43, col_y+18],
+                       fill=(62, 57, 78))
 
-    # Ligne de sol
-    draw.line([(0, ground_y), (WIDTH, ground_y)], fill=(80, 70, 100), width=2)
-
+    draw.line([(0, ground_y), (WIDTH, ground_y)],
+              fill=(80, 70, 100), width=2)
     return ground_y
 
-# ─── DESSIN : MARIONNETTE (humain) ──────────────────────────────────
-def draw_puppet(draw, cx, cy, frame, offset=0, scale=1.0, sway_amp=1.0):
-    """
-    Marionnette en bois avec fils visibles.
-    Mouvements saccadés (pas fluides).
-    """
-    t = frame / FPS
-    # Mouvement saccadé (quantifié toutes les 4 frames)
-    snap_t = (frame // 4) * 4 / FPS
-    sway = math.sin(snap_t * 2 + offset) * 8 * sway_amp
-    bob  = abs(math.sin(snap_t * 2 + offset)) * 5 * sway_amp
+# ─── MARIONNETTE GÉNÉRIQUE ──────────────────────────────────────────
+def draw_puppet(draw, cx, cy, frame, offset=0.0, scale=1.0,
+                sway_amp=1.0, robe_color=None, show_strings=True):
+    snap_t   = (frame // 4) * 4 / FPS
+    sway     = math.sin(snap_t * 2 + offset) * 8 * sway_amp
+    bob      = abs(math.sin(snap_t * 2 + offset)) * 5 * sway_amp
+    s        = scale
+    lw       = max(2, int(3 * s))
 
-    s = scale
-    # Points du corps
-    head_x, head_y   = cx + sway, cy - bob
-    neck_x, neck_y   = cx + sway * 0.8, cy + int(20 * s) - bob
-    body_x, body_y   = cx + sway * 0.5, cy + int(55 * s) - bob
-    lhip_x, lhip_y   = cx + sway * 0.3 - int(12 * s), cy + int(80 * s) - bob
-    rhip_x, rhip_y   = cx + sway * 0.3 + int(12 * s), cy + int(80 * s) - bob
+    hx, hy         = cx + sway,       cy - bob
+    nx, ny         = cx + sway*.8,    cy + int(20*s) - bob
+    bx, by         = cx + sway*.5,    cy + int(55*s) - bob
+    lhx, lhy       = bx - int(12*s),  by + int(25*s)
+    rhx, rhy       = bx + int(12*s),  by + int(25*s)
 
-    # Jambes (saccadées)
-    leg_swing = math.sin(snap_t * 3 + offset) * 15 * sway_amp
-    lknee_x = lhip_x - int(leg_swing * 0.5)
-    lknee_y = lhip_y + int(30 * s)
-    lfoot_x = lknee_x - int(leg_swing * 0.3)
-    lfoot_y = lknee_y + int(28 * s)
+    leg_sw = math.sin(snap_t * 3 + offset) * 15 * sway_amp
+    lkx, lky = lhx - int(leg_sw*.5), lhy + int(30*s)
+    lfx, lfy = lkx - int(leg_sw*.3), lky + int(28*s)
+    rkx, rky = rhx + int(leg_sw*.5), rhy + int(30*s)
+    rfx, rfy = rkx + int(leg_sw*.3), rky + int(28*s)
 
-    rknee_x = rhip_x + int(leg_swing * 0.5)
-    rknee_y = rhip_y + int(30 * s)
-    rfoot_x = rknee_x + int(leg_swing * 0.3)
-    rfoot_y = rknee_y + int(28 * s)
+    arm_sw = math.sin(snap_t * 3 + offset + math.pi) * 20 * sway_amp
+    lsx, lsy = nx - int(18*s), ny + int(10*s)
+    lex, ley = lsx - int(15*s) - int(arm_sw*.4), lsy + int(20*s)
+    lhndx, lhndy = lex - int(10*s), ley + int(18*s)
+    rsx, rsy = nx + int(18*s), ny + int(10*s)
+    rex, rey = rsx + int(15*s) + int(arm_sw*.4), rsy + int(20*s)
+    rhndx, rhndy = rex + int(10*s), rey + int(18*s)
 
-    # Bras
-    arm_swing = math.sin(snap_t * 3 + offset + math.pi) * 20 * sway_amp
-    lshoulder_x, lshoulder_y = neck_x - int(18 * s), neck_y + int(10 * s)
-    lelbow_x = lshoulder_x - int(15 * s) - int(arm_swing * 0.4)
-    lelbow_y = lshoulder_y + int(20 * s)
-    lhand_x  = lelbow_x - int(10 * s)
-    lhand_y  = lelbow_y + int(18 * s)
+    # Fils
+    if show_strings:
+        top_y = cy - int(110*s)
+        for (px, py) in [(hx, hy - int(12*s)), (lhndx, lhndy),
+                         (rhndx, rhndy), (lfx, lfy), (rfx, rfy)]:
+            draw.line([(px, top_y), (px, py)],
+                      fill=(180, 160, 120), width=max(1, int(s)))
 
-    rshoulder_x, rshoulder_y = neck_x + int(18 * s), neck_y + int(10 * s)
-    relbow_x = rshoulder_x + int(15 * s) + int(arm_swing * 0.4)
-    relbow_y = rshoulder_y + int(20 * s)
-    rhand_x  = relbow_x + int(10 * s)
-    rhand_y  = relbow_y + int(18 * s)
+    # Robe optionnelle
+    if robe_color:
+        robe_pts = [
+            (nx - int(20*s), ny),
+            (nx + int(20*s), ny),
+            (bx + int(35*s), by + int(55*s)),
+            (bx - int(35*s), by + int(55*s)),
+        ]
+        draw.polygon(robe_pts, fill=robe_color,
+                     outline=tuple(min(255, c+30) for c in robe_color))
 
-    # ── Fils de marionnette ──────────────────────────────────────────
-    string_top_y = cy - int(120 * s)
-    string_color = (180, 160, 120, 180)
-    w = max(1, int(s))
-    for (px, py) in [(head_x, head_y - int(12*s)),
-                     (lhand_x, lhand_y),
-                     (rhand_x, rhand_y),
-                     (lfoot_x, lfoot_y),
-                     (rfoot_x, rfoot_y)]:
-        draw.line([(px, string_top_y), (px, py)],
-                  fill=(180, 160, 120), width=w)
+    # Corps
+    for seg in [(nx,ny,bx,by),(bx,by,lhx,lhy),(bx,by,rhx,rhy),
+                (lhx,lhy,lkx,lky),(lkx,lky,lfx,lfy),
+                (rhx,rhy,rkx,rky),(rkx,rky,rfx,rfy),
+                (lsx,lsy,lex,ley),(lex,ley,lhndx,lhndy),
+                (rsx,rsy,rex,rey),(rex,rey,rhndx,rhndy),
+                (lsx,lsy,rsx,rsy)]:
+        draw.line([seg[:2], seg[2:]], fill=PUPPET_COLOR, width=lw)
 
-    # ── Corps ────────────────────────────────────────────────────────
-    lw = max(2, int(3 * s))
-    # Torse
-    draw.line([(neck_x, neck_y), (body_x, body_y)],
-              fill=PUPPET_COLOR, width=lw)
-    # Hanches
-    draw.line([(body_x, body_y), (lhip_x, lhip_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(body_x, body_y), (rhip_x, rhip_y)],
-              fill=PUPPET_COLOR, width=lw)
-    # Jambes
-    draw.line([(lhip_x, lhip_y), (lknee_x, lknee_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(lknee_x, lknee_y), (lfoot_x, lfoot_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(rhip_x, rhip_y), (rknee_x, rknee_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(rknee_x, rknee_y), (rfoot_x, rfoot_y)],
-              fill=PUPPET_COLOR, width=lw)
-    # Bras
-    draw.line([(lshoulder_x, lshoulder_y), (lelbow_x, lelbow_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(lelbow_x, lelbow_y), (lhand_x, lhand_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(rshoulder_x, rshoulder_y), (relbow_x, relbow_y)],
-              fill=PUPPET_COLOR, width=lw)
-    draw.line([(relbow_x, relbow_y), (rhand_x, rhand_y)],
-              fill=PUPPET_COLOR, width=lw)
-    # Épaules
-    draw.line([(lshoulder_x, lshoulder_y), (rshoulder_x, rshoulder_y)],
-              fill=PUPPET_COLOR, width=lw)
-
-    # ── Articulations (cercles) ──────────────────────────────────────
-    jr = max(3, int(4 * s))
-    for (jx, jy) in [(neck_x, neck_y), (body_x, body_y),
-                     (lhip_x, lhip_y), (rhip_x, rhip_y),
-                     (lknee_x, lknee_y), (rknee_x, rknee_y),
-                     (lshoulder_x, lshoulder_y), (rshoulder_x, rshoulder_y),
-                     (lelbow_x, lelbow_y), (relbow_x, relbow_y)]:
+    # Articulations
+    jr = max(3, int(4*s))
+    for (jx, jy) in [(nx,ny),(bx,by),(lhx,lhy),(rhx,rhy),
+                     (lkx,lky),(rkx,rky),(lsx,lsy),(rsx,rsy),
+                     (lex,ley),(rex,rey)]:
         draw.ellipse([jx-jr, jy-jr, jx+jr, jy+jr],
                      fill=PUPPET_JOINT, outline=PUPPET_COLOR)
-
-    # ── Tête ─────────────────────────────────────────────────────────
+                     
+    # Tête
     hr = int(14 * s)
-    draw.ellipse([head_x - hr, head_y - hr*2,
-                  head_x + hr, head_y],
+    draw.ellipse([hx - hr, hy - hr*2, hx + hr, hy],
                  fill=PUPPET_COLOR, outline=PUPPET_JOINT, width=lw)
-    # Yeux peints (marionnette)
-    draw.ellipse([head_x-5, head_y-hr, head_x-2, head_y-hr+4],
-                 fill=(20, 10, 5))
-    draw.ellipse([head_x+2, head_y-hr, head_x+5, head_y-hr+4],
-                 fill=(20, 10, 5))
-    # Sourire peint
-    draw.arc([head_x-5, head_y-hr//2, head_x+5, head_y-2],
-             start=0, end=180, fill=(20, 10, 5), width=2)
+                 
+    # Yeux et Sourire
+    draw.ellipse([hx-5, hy-hr, hx-2, hy-hr+4], fill=(20, 10, 5))
+    draw.ellipse([hx+2, hy-hr, hx+5, hy-hr+4], fill=(20, 10, 5))
+    draw.arc([hx-5, hy-hr//2, hx+5, hy-2], start=0, end=180, fill=(20, 10, 5), width=2)
 
 # ─── DESSIN : DIEU (vivant, lumineux) ───────────────────────────────
-def draw_god(draw, cx, cy, frame, name="Aphrodite", scale=1.2):
+def draw_god(draw, cx, cy, frame, name="Athena", robe_color="GOD_ROBE", scale=1.2):
     """
     Dieu vivant : mouvements fluides, aura lumineuse, robe.
     """
@@ -220,7 +167,7 @@ def draw_god(draw, cx, cy, frame, name="Aphrodite", scale=1.2):
                           else (100, 150, 255, alpha))
 
     # ── Robe ─────────────────────────────────────────────────────────
-    robe_color = GOD_ROBE if name == "Aphrodite" else (80, 120, 220)
+    robe_color = GOD_ROBE if name == "Athena" else (80, 120, 220)
     robe_pts = [
         (cx + sway - int(25*s), cy - int(30*s) + float_y),
         (cx + sway + int(25*s), cy - int(30*s) + float_y),
@@ -323,13 +270,8 @@ for frame in range(TOTAL_FRAMES):
     ground_y = draw_background(draw, frame)
     scene    = get_scene(frame)
     t        = frame / TOTAL_FRAMES
-    t_scene  = (frame - {
-        "intro": 0,
-        "puppet_dance": int(TOTAL_FRAMES * 0.20),
-        "god_appears":  int(TOTAL_FRAMES * 0.45),
-        "confrontation":int(TOTAL_FRAMES * 0.65),
-        "finale":       int(TOTAL_FRAMES * 0.85),
-    }[scene]) / TOTAL_FRAMES
+    t_scene = (frame - SCENE_STARTS[scene]) / TOTAL_FRAMES
+
 
     # ── INTRO : Titre ────────────────────────────────────────────────
     if scene == "intro":
